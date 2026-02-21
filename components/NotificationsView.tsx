@@ -10,7 +10,13 @@ import { Member, WahaConfig, NotificationLog, MembershipStatus } from '../types'
 import { generateNotificationTemplate } from '../services/geminiService';
 import { sendWahaMessage, checkWahaStatus } from '../services/wahaService';
 
-const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
+interface NotificationsViewProps {
+  members: Member[];
+  notifications: NotificationLog[];
+  setNotifications: React.Dispatch<React.SetStateAction<NotificationLog[]>>;
+}
+
+const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifications, setNotifications }) => {
   const [activeTab, setActiveTab] = useState<'send' | 'history' | 'automation'>('send');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [msgType, setMsgType] = useState('Vencimiento');
@@ -28,7 +34,6 @@ const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
   const [isSending, setIsSending] = useState(false);
   const [showWahaSettings, setShowWahaSettings] = useState(false);
   const [sendFeedback, setSendFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
-  const [history, setHistory] = useState<NotificationLog[]>([]);
 
   // Automation States
   const [isSyncing, setIsSyncing] = useState(false);
@@ -50,12 +55,6 @@ const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
       setIsWahaOnline(online);
     };
     verifyStatus();
-    
-    // Simulación de historial inicial
-    setHistory([
-      { id: '1', memberId: 'm1', timestamp: '2024-05-22 10:30', mensaje: 'Recordatorio de pago enviado.', tipo: 'Vencimiento', status: 'sent' },
-      { id: '2', memberId: 'm2', timestamp: '2024-05-22 11:15', mensaje: '¡Feliz cumpleaños Maria!', tipo: 'Cumpleaños', status: 'delivered' },
-    ]);
   }, [wahaConfig]);
 
   const handleGenerate = async () => {
@@ -85,9 +84,10 @@ const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
         timestamp: new Date().toLocaleString(),
         mensaje: msg,
         tipo: 'Recordatorio 3 Días',
-        status: 'sent'
+        status: 'sent',
+        read: false
       };
-      setHistory(prev => [newLog, ...prev]);
+      setNotifications(prev => [newLog, ...prev]);
       return true;
     } catch (error: any) {
       if (!customMsg) setSendFeedback({ type: 'error', msg: error.message || 'Error al conectar con WAHA.' });
@@ -402,7 +402,12 @@ const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
         <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-500">
            <div className="p-8 border-b border-gray-50 flex justify-between items-center">
               <h3 className="text-xl font-bold">Registro de Comunicaciones</h3>
-              <button className="text-sm font-bold text-gray-400 hover:text-red-500">Limpiar historial</button>
+              <button 
+                onClick={() => setNotifications([])}
+                className="text-sm font-bold text-gray-400 hover:text-red-500"
+              >
+                Limpiar historial
+              </button>
            </div>
            <div className="overflow-x-auto">
              <table className="w-full text-left">
@@ -416,7 +421,7 @@ const NotificationsView: React.FC<{ members: Member[] }> = ({ members }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {history.map(log => (
+                  {notifications.map(log => (
                     <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-8 py-5">
                         <span className="text-sm font-bold text-gray-900">{getMemberName(log.memberId)}</span>

@@ -61,6 +61,7 @@ export interface NotificationLog {
   mensaje: string;
   tipo: string;
   status: 'sent' | 'delivered' | 'failed';
+  read?: boolean;
 }
 
 export interface WahaConfig {

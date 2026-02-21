@@ -1,19 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Users, CreditCard, Clock, BrainCircuit } from 'lucide-react';
+import { TrendingUp, Users, CreditCard, Clock, BrainCircuit, Calendar, Apple, ChevronRight, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
-import { Member, MembershipStatus } from '../types';
+import { Member, MembershipStatus, User, UserRole } from '../types';
 import { getGymAnalyticsSummary } from '../services/geminiService';
+import { MOCK_APPOINTMENTS } from '../constants';
 
-const Dashboard: React.FC<{ members: Member[] }> = ({ members }) => {
+const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members, currentUser }) => {
   const [aiSummary, setAiSummary] = useState<string>("Analizando datos del gimnasio...");
   const [isAiLoading, setIsAiLoading] = useState(true);
+  const isNutri = currentUser.role === UserRole.NUTRIOLOGO;
 
   const stats = {
     total: members.length,
     activos: members.filter(m => m.status === MembershipStatus.ACTIVO).length,
     vencidos: members.filter(m => m.status === MembershipStatus.VENCIDO).length,
-    ingresosEstimados: members.reduce((acc, m) => acc + (m.status === MembershipStatus.ACTIVO ? 350 : 0), 0)
+    ingresosEstimados: members.reduce((acc, m) => acc + (m.status === MembershipStatus.ACTIVO ? 350 : 0), 0),
+    citasHoy: MOCK_APPOINTMENTS.length // Simplified for demo
   };
 
   useEffect(() => {
@@ -51,38 +54,77 @@ const Dashboard: React.FC<{ members: Member[] }> = ({ members }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={Users} label="Total Miembros" value={stats.total.toString()} color="bg-blue-500" />
-        <StatCard icon={TrendingUp} label="Miembros Activos" value={stats.activos.toString()} color="bg-green-500" />
-        <StatCard icon={Clock} label="Vencidos/Pendientes" value={stats.vencidos.toString()} color="bg-red-500" />
-        <StatCard icon={CreditCard} label="Ingresos Mensuales" value={`$${stats.ingresosEstimados}`} color="bg-orange-500" />
+        {isNutri ? (
+          <>
+            <StatCard icon={Calendar} label="Citas para Hoy" value={stats.citasHoy.toString()} color="bg-orange-500" />
+            <StatCard icon={Users} label="Pacientes Totales" value={stats.total.toString()} color="bg-blue-500" />
+            <StatCard icon={Activity} label="Evaluaciones Realizadas" value="12" color="bg-emerald-500" />
+            <StatCard icon={Apple} label="Planes Activos" value="28" color="bg-purple-500" />
+          </>
+        ) : (
+          <>
+            <StatCard icon={Users} label="Total Miembros" value={stats.total.toString()} color="bg-blue-500" />
+            <StatCard icon={TrendingUp} label="Miembros Activos" value={stats.activos.toString()} color="bg-green-500" />
+            <StatCard icon={Clock} label="Vencidos/Pendientes" value={stats.vencidos.toString()} color="bg-red-500" />
+            <StatCard icon={CreditCard} label="Ingresos Mensuales" value={`$${stats.ingresosEstimados}`} color="bg-orange-500" />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Column */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold mb-6">Asistencia Semanal</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dataAsistencia}>
-                  <defs>
-                    <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                  <Tooltip 
-                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} 
-                    cursor={{stroke: '#f97316', strokeWidth: 2}}
-                  />
-                  <Area type="monotone" dataKey="visitas" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVisitas)" />
-                </AreaChart>
-              </ResponsiveContainer>
+          {isNutri ? (
+            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black">Agenda de Hoy</h3>
+                <button className="text-orange-500 font-bold text-sm">Ver calendario completo</button>
+              </div>
+              <div className="space-y-4">
+                {MOCK_APPOINTMENTS.map(app => {
+                  const member = members.find(m => m.id === app.memberId);
+                  return (
+                    <div key={app.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl hover:bg-orange-50 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <img src={member?.foto} className="w-12 h-12 rounded-xl object-cover" />
+                        <div>
+                          <p className="font-black text-gray-900">{member?.nombre}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{app.hora} HS • Evaluación Mensual</p>
+                        </div>
+                      </div>
+                      <button className="p-3 bg-white rounded-2xl text-gray-400 group-hover:text-orange-500 shadow-sm">
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold mb-6">Asistencia Semanal</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dataAsistencia}>
+                    <defs>
+                      <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                    <Tooltip 
+                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} 
+                      cursor={{stroke: '#f97316', strokeWidth: 2}}
+                    />
+                    <Area type="monotone" dataKey="visitas" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorVisitas)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AI Column */}

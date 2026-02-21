@@ -13,7 +13,9 @@ import {
   Settings,
   ChevronRight
 } from 'lucide-react';
-import { UserRole, User, Member, MembershipStatus } from './types';
+import NotificationDropdown from './components/NotificationDropdown';
+import { Apple, User as UserIcon } from 'lucide-react';
+import { UserRole, User, Member, MembershipStatus, NotificationLog } from './types';
 import { MOCK_MEMBERS, GYM_PLANS } from './constants';
 import Dashboard from './components/Dashboard';
 import MembersList from './components/MembersList';
@@ -22,7 +24,7 @@ import FinanceView from './components/FinanceView';
 import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
-import { Apple } from 'lucide-react';
+import MemberProfile from './components/MemberProfile';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User>({
@@ -36,6 +38,51 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationLog[]>([
+    {
+      id: '1',
+      memberId: 'm1',
+      tipo: 'Membresía por Vencer',
+      mensaje: 'El socio Juan Pérez tiene su membresía por vencer en 3 días.',
+      timestamp: 'Hace 5 min',
+      status: 'sent',
+      read: false
+    },
+    {
+      id: '2',
+      memberId: 'm2',
+      tipo: 'Pago Recibido',
+      mensaje: 'Se ha registrado un pago de $500 de Maria García.',
+      timestamp: 'Hace 2 horas',
+      status: 'sent',
+      read: false
+    },
+    {
+      id: '3',
+      memberId: 'm3',
+      tipo: 'Nueva Cita Nutricional',
+      mensaje: 'Carlos Ruiz ha agendado una cita para mañana a las 10:00 AM.',
+      timestamp: 'Hace 4 horas',
+      status: 'sent',
+      read: true
+    }
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleClearAll = () => {
+    setNotifications([]);
+  };
+
+  const handleViewAll = () => {
+    setActiveTab('notifications');
+    setIsNotificationOpen(false);
+  };
 
   // Filter menu items by role
   const menuItems = [
@@ -43,6 +90,7 @@ const App: React.FC = () => {
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
+    { id: 'profile', label: 'Mi Perfil', icon: UserIcon, roles: [UserRole.MIEMBRO] },
     { id: 'finance', label: 'Pagos / Planes', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: Bell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MIEMBRO, UserRole.INSTRUCTOR] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [UserRole.SUPER_ADMIN] },
@@ -50,14 +98,15 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard members={members} />;
+      case 'dashboard': return <Dashboard members={members} currentUser={currentUser} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
       case 'attendance': return <AttendanceTracker members={members} />;
-      case 'nutrition': return <NutritionView members={members} />;
+      case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
+      case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} />;
-      case 'notifications': return <NotificationsView members={members} />;
+      case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} />;
       case 'settings': return <SettingsView currentUser={currentUser} />;
-      default: return <Dashboard members={members} />;
+      default: return <Dashboard members={members} currentUser={currentUser} />;
     }
   };
 
@@ -98,8 +147,10 @@ const App: React.FC = () => {
                  const newRole = e.target.value as UserRole;
                  setCurrentUser({...currentUser, role: newRole});
                  // Reset tab if current not allowed for new role
-                 if (newRole === UserRole.MIEMBRO && ['finance', 'settings', 'dashboard'].includes(activeTab)) {
-                   setActiveTab('notifications');
+                 if (newRole === UserRole.MIEMBRO) {
+                   setActiveTab('profile');
+                 } else if (['finance', 'settings', 'dashboard'].includes(activeTab)) {
+                   setActiveTab('dashboard');
                  }
                }}
              >
@@ -142,11 +193,30 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-6">
-            <div className="relative group cursor-pointer">
-              <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-orange-50 transition-all border border-transparent group-hover:border-orange-100">
-                <Bell size={22} className="text-gray-400 group-hover:text-orange-500 transition-colors" />
-              </div>
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className={`p-3 rounded-2xl transition-all border border-transparent active:scale-95 ${
+                  isNotificationOpen ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-gray-50 text-gray-400 hover:bg-orange-50 hover:text-orange-500 hover:border-orange-100'
+                }`}
+              >
+                <Bell size={22} className={unreadCount > 0 && !isNotificationOpen ? 'animate-bounce' : ''} />
+              </button>
+              
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black text-white">
+                  {unreadCount}
+                </span>
+              )}
+
+              <NotificationDropdown 
+                notifications={notifications}
+                isOpen={isNotificationOpen}
+                onClose={() => setIsNotificationOpen(false)}
+                onMarkAsRead={handleMarkAsRead}
+                onClearAll={handleClearAll}
+                onViewAll={handleViewAll}
+              />
             </div>
             
             <div className="h-10 w-[1px] bg-gray-100"></div>

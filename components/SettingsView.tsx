@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, Shield, Smartphone, Globe, Clock, Users, 
   Save, Database, Palette, Lock, Bell, Mail, 
   MapPin, Camera, Trash2, Edit3, UserPlus, Key,
-  Zap, Info, Cloud
+  Zap, Info, Cloud, Download, Apple, Layout
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -13,9 +13,28 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
-  const [activeSection, setActiveSection] = useState<'general' | 'personal' | 'integraciones' | 'seguridad'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'personal' | 'integraciones' | 'seguridad' | 'movil'>('general');
   const [gymName, setGymName] = useState('GymMaster Pro');
   const [isSaving, setIsSaving] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   // Mock staff data
   const [staff, setStaff] = useState([
@@ -35,6 +54,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     { id: 'general', label: 'Gimnasio & Marca', icon: Globe },
     { id: 'personal', label: 'Personal & Roles', icon: Users },
     { id: 'integraciones', label: 'APIs & Conexiones', icon: Zap },
+    { id: 'movil', label: 'Móvil & PWA', icon: Smartphone },
     { id: 'seguridad', label: 'Seguridad & Datos', icon: Lock },
   ];
 
@@ -228,6 +248,80 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                   <button className="mt-4 px-6 py-3 bg-white text-orange-600 rounded-2xl font-black text-sm hover:scale-105 transition-transform">Contactar Soporte</button>
                 </div>
                 <Cloud size={150} className="absolute -bottom-10 -right-10 text-white/10" />
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'movil' && (
+            <div className="space-y-8 animate-in slide-in-from-right duration-500">
+              <div className="bg-gray-900 p-10 rounded-[40px] text-white relative overflow-hidden">
+                <div className="relative z-10 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 text-orange-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-500/30">
+                    <Smartphone size={14} /> Experiencia Nativa
+                  </div>
+                  <h2 className="text-3xl font-black tracking-tight">Lleva tu gimnasio a todas partes</h2>
+                  <p className="text-gray-400 max-w-lg font-medium">
+                    GymMaster Pro está optimizado para funcionar como una aplicación nativa en Android y iOS. 
+                    Instálala ahora para recibir notificaciones push y acceso rápido.
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-4 pt-4">
+                    <button 
+                      onClick={handleInstall}
+                      disabled={!deferredPrompt}
+                      className="px-8 py-4 bg-orange-500 text-white rounded-2xl font-black text-sm flex items-center gap-3 hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+                    >
+                      <Download size={20} />
+                      {deferredPrompt ? 'Instalar App' : 'App ya Instalada'}
+                    </button>
+                    <button className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-sm hover:bg-white/10 transition-all">
+                      Configurar Push
+                    </button>
+                  </div>
+                </div>
+                <Smartphone size={200} className="absolute -bottom-20 -right-10 text-white/5" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Apple size={24} /></div>
+                    <h3 className="text-xl font-bold">iOS / Apple</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500">Para instalar en iPhone o iPad:</p>
+                    <ol className="text-xs text-gray-600 space-y-3 list-decimal pl-4 font-medium">
+                      <li>Abre esta página en <span className="font-bold text-gray-900">Safari</span>.</li>
+                      <li>Toca el botón <span className="font-bold text-gray-900">Compartir</span> (cuadrado con flecha).</li>
+                      <li>Selecciona <span className="font-bold text-gray-900">"Añadir a pantalla de inicio"</span>.</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layout size={24} /></div>
+                    <h3 className="text-xl font-bold">Android / Google</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500">Para instalar en dispositivos Android:</p>
+                    <ol className="text-xs text-gray-600 space-y-3 list-decimal pl-4 font-medium">
+                      <li>Toca el botón <span className="font-bold text-gray-900">"Instalar App"</span> arriba.</li>
+                      <li>O ve al menú de Chrome (3 puntos) y selecciona <span className="font-bold text-gray-900">"Instalar aplicación"</span>.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-orange-50 rounded-[40px] border border-orange-100 flex items-start gap-4">
+                <div className="p-2 bg-orange-500 text-white rounded-xl"><Zap size={20}/></div>
+                <div>
+                  <h4 className="font-bold text-orange-900">Capacitor Native Bridge</h4>
+                  <p className="text-sm text-orange-700">
+                    El sistema está preparado para ser compilado como binario nativo (.apk / .ipa) usando Capacitor. 
+                    Esto permite acceso a Bluetooth para básculas y NFC para control de acceso.
+                  </p>
+                </div>
               </div>
             </div>
           )}

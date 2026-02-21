@@ -10,7 +10,6 @@ import {
   Plus, 
   ChevronRight, 
   History, 
-  User, 
   Clock,
   ArrowUpRight,
   ArrowDownRight,
@@ -27,17 +26,19 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { Member, BodyMetrics, NutritionAppointment } from '../types';
+import { Member, BodyMetrics, NutritionAppointment, User, UserRole } from '../types';
 import { MOCK_METRICS, MOCK_APPOINTMENTS } from '../constants';
 
 interface NutritionViewProps {
   members: Member[];
+  currentUser: User;
 }
 
-const NutritionView: React.FC<NutritionViewProps> = ({ members }) => {
+const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) => {
+  const isMember = currentUser.role === UserRole.MIEMBRO;
   const [appointments, setAppointments] = useState<NutritionAppointment[]>(MOCK_APPOINTMENTS);
   const [metrics, setMetrics] = useState<BodyMetrics[]>(MOCK_METRICS);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(members[0]?.id || '');
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(isMember ? currentUser.id : (members[0]?.id || ''));
   const [isAddingMetrics, setIsAddingMetrics] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
 
@@ -91,30 +92,32 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members }) => {
         </div>
       </div>
 
-      {/* Member Selector */}
-      <div className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm flex items-center gap-6">
-        <div className="flex-1">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Seleccionar Socio para Análisis</label>
-          <select 
-            value={selectedMemberId}
-            onChange={(e) => setSelectedMemberId(e.target.value)}
-            className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-orange-500 rounded-2xl outline-none font-bold text-gray-900"
-          >
-            {members.map(m => (
-              <option key={m.id} value={m.id}>{m.nombre} (ID: {m.id})</option>
-            ))}
-          </select>
-        </div>
-        {selectedMember && (
-          <div className="flex items-center gap-4 px-6 py-2 border-l border-gray-100">
-            <img src={selectedMember.foto} className="w-12 h-12 rounded-xl object-cover" alt="" />
-            <div>
-              <p className="font-black text-gray-900">{selectedMember.nombre}</p>
-              <p className="text-[10px] text-orange-500 font-black uppercase">{selectedMember.objetivo || 'Sin objetivo definido'}</p>
-            </div>
+      {/* Member Selector - Hidden for Members */}
+      {!isMember && (
+        <div className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm flex items-center gap-6">
+          <div className="flex-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Seleccionar Socio para Análisis</label>
+            <select 
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-orange-500 rounded-2xl outline-none font-bold text-gray-900"
+            >
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.nombre} (ID: {m.id})</option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
+          {selectedMember && (
+            <div className="flex items-center gap-4 px-6 py-2 border-l border-gray-100">
+              <img src={selectedMember.foto} className="w-12 h-12 rounded-xl object-cover" alt="" />
+              <div>
+                <p className="font-black text-gray-900">{selectedMember.nombre}</p>
+                <p className="text-[10px] text-orange-500 font-black uppercase">{selectedMember.objetivo || 'Sin objetivo definido'}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Metrics Cards */}
