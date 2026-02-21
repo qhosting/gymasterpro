@@ -4,9 +4,10 @@ import {
   Search, Filter, Plus, Edit2, Trash2, Camera, X, Check, 
   Phone, Download, Calendar, User, ShieldAlert,
   ChevronRight, RefreshCw, Eye, Tag, CreditCard, SlidersHorizontal,
-  Dumbbell
+  Dumbbell, Apple, Clock, Save
 } from 'lucide-react';
-import { Member, MembershipStatus, UserRole } from '../types';
+import { Member, MembershipStatus, UserRole, NutritionAppointment } from '../types';
+import { MOCK_APPOINTMENTS } from '../constants';
 
 interface MembersListProps {
   members: Member[];
@@ -21,6 +22,9 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<NutritionAppointment[]>(MOCK_APPOINTMENTS);
+  const [editingAppointment, setEditingAppointment] = useState<string | null>(null);
+  const [editAppForm, setEditAppForm] = useState({ fecha: '', hora: '' });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -121,6 +125,17 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
     setNewMember({ nombre: '', email: '', telefono: '', plan: '1', objetivo: 'Pérdida de peso', contactoEmergencia: '', telefonoEmergencia: '' });
     setCapturedImage(null);
   };
+
+  const handleUpdateAppointment = (id: string) => {
+    setAppointments(appointments.map(a => 
+      a.id === id ? { ...a, fecha: editAppForm.fecha, hora: editAppForm.hora } : a
+    ));
+    setEditingAppointment(null);
+  };
+
+  const memberAppointments = selectedMember 
+    ? appointments.filter(a => a.memberId === selectedMember.id)
+    : [];
 
   const handleRenovacionExpress = (id: string) => {
     setMembers(members.map(m => {
@@ -378,6 +393,94 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                     </div>
                   </div>
                   <ShieldAlert size={120} className="absolute -bottom-10 -right-10 text-red-100 group-hover:rotate-12 transition-transform duration-500" />
+               </div>
+
+               {/* Nutrition Appointments Section */}
+               <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                    <h4 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                      <Apple size={18} className="text-emerald-500" /> Citas Nutricionales
+                    </h4>
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black">
+                      {memberAppointments.length} Registradas
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {memberAppointments.length === 0 ? (
+                      <div className="p-8 bg-gray-50 rounded-[30px] border border-dashed border-gray-200 text-center">
+                        <p className="text-xs font-bold text-gray-400">No hay citas agendadas para este socio.</p>
+                      </div>
+                    ) : (
+                      memberAppointments.map(app => (
+                        <div key={app.id} className="p-6 bg-white border border-gray-100 rounded-[30px] shadow-sm hover:shadow-md transition-all">
+                          {editingAppointment === app.id ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Nueva Fecha</label>
+                                  <input 
+                                    type="date" 
+                                    className="w-full p-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-orange-500"
+                                    value={editAppForm.fecha}
+                                    onChange={(e) => setEditAppForm({...editAppForm, fecha: e.target.value})}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Nueva Hora</label>
+                                  <input 
+                                    type="time" 
+                                    className="w-full p-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-orange-500"
+                                    value={editAppForm.hora}
+                                    onChange={(e) => setEditAppForm({...editAppForm, hora: e.target.value})}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => handleUpdateAppointment(app.id)}
+                                  className="flex-1 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2"
+                                >
+                                  <Save size={14} /> Guardar
+                                </button>
+                                <button 
+                                  onClick={() => setEditingAppointment(null)}
+                                  className="px-4 py-2 bg-gray-100 text-gray-500 rounded-xl text-[10px] font-black uppercase"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                  <Calendar size={24} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-black text-gray-900">
+                                    {new Date(app.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                    <Clock size={10} /> {app.hora} HS • {app.status}
+                                  </p>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  setEditingAppointment(app.id);
+                                  setEditAppForm({ fecha: app.fecha, hora: app.hora });
+                                }}
+                                className="p-3 bg-gray-50 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-2xl transition-all"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                </div>
 
                {/* Activity Logs */}

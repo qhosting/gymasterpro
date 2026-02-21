@@ -6,8 +6,8 @@ import {
   Trash2, Edit3, CheckCircle, Clock, X, Wallet, ChevronRight
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Member, MembershipStatus, Plan, Transaction } from '../types';
-import { GYM_PLANS, MOCK_TRANSACTIONS } from '../constants';
+import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
+import { GYM_PLANS, MOCK_TRANSACTIONS, MOCK_APPOINTMENTS } from '../constants';
 
 interface FinanceViewProps {
   members: Member[];
@@ -24,7 +24,10 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members }) => {
     memberId: '',
     amount: 0,
     method: 'Efectivo' as Transaction['metodo'],
-    type: 'Mensualidad' as Transaction['tipo']
+    type: 'Mensualidad' as Transaction['tipo'],
+    scheduleNutrition: false,
+    nutritionDate: '',
+    nutritionTime: ''
   });
 
   const totalRecaudado = transactions
@@ -53,9 +56,28 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members }) => {
       status: 'Completado'
     };
     setTransactions([newTx, ...transactions]);
+    
+    // If nutrition appointment is scheduled, we would typically save it to a global state or API
+    if (paymentData.scheduleNutrition && paymentData.nutritionDate && paymentData.nutritionTime) {
+      console.log('Cita con nutriólogo agendada:', {
+        memberId: paymentData.memberId,
+        fecha: paymentData.nutritionDate,
+        hora: paymentData.nutritionTime
+      });
+      // In a real app, we'd call a service or update global state here
+    }
+
     setIsPaymentModalOpen(false);
     // Reset form
-    setPaymentData({ memberId: '', amount: 0, method: 'Efectivo', type: 'Mensualidad' });
+    setPaymentData({ 
+      memberId: '', 
+      amount: 0, 
+      method: 'Efectivo', 
+      type: 'Mensualidad',
+      scheduleNutrition: false,
+      nutritionDate: '',
+      nutritionTime: ''
+    });
   };
 
   const getMemberName = (id: string) => members.find(m => m.id === id)?.nombre || 'Socio Externo';
@@ -371,6 +393,57 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members }) => {
                     <option>Otro</option>
                   </select>
                 </div>
+
+                {/* Nutrition Appointment Option */}
+                {paymentData.type === 'Mensualidad' && (
+                  <div className="p-6 bg-orange-50 rounded-3xl border border-orange-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-500 text-white rounded-xl">
+                          <Calendar size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-900">Cita con Nutriólogo</p>
+                          <p className="text-[10px] text-orange-600 font-bold uppercase">Incluido en tu mensualidad</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={paymentData.scheduleNutrition}
+                          onChange={(e) => setPaymentData({...paymentData, scheduleNutrition: e.target.checked})}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                      </label>
+                    </div>
+
+                    {paymentData.scheduleNutrition && (
+                      <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha</label>
+                          <input 
+                            type="date"
+                            required={paymentData.scheduleNutrition}
+                            className="w-full p-3 bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-sm"
+                            value={paymentData.nutritionDate}
+                            onChange={(e) => setPaymentData({...paymentData, nutritionDate: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hora</label>
+                          <input 
+                            type="time"
+                            required={paymentData.scheduleNutrition}
+                            className="w-full p-3 bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-sm"
+                            value={paymentData.nutritionTime}
+                            onChange={(e) => setPaymentData({...paymentData, nutritionTime: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <button 

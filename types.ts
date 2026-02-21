@@ -3,7 +3,8 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   INSTRUCTOR = 'INSTRUCTOR',
-  MIEMBRO = 'MIEMBRO'
+  MIEMBRO = 'MIEMBRO',
+  NUTRIOLOGO = 'NUTRIOLOGO'
 }
 
 export enum MembershipStatus {
@@ -75,4 +76,24 @@ export interface Plan {
   duracionMeses: number;
   beneficios?: string[];
   color?: string;
+}
+
+export interface BodyMetrics {
+  id: string;
+  memberId: string;
+  fecha: string;
+  peso: number; // kg
+  masaMuscular: number; // % or kg
+  grasaCorporal: number; // %
+  agua: number; // %
+  imc: number;
+}
+
+export interface NutritionAppointment {
+  id: string;
+  memberId: string;
+  fecha: string;
+  hora: string;
+  status: 'Programada' | 'Completada' | 'Cancelada';
+  notas?: string;
 }

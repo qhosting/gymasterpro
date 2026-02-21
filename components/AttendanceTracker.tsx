@@ -7,6 +7,7 @@ import {
   Edit3, Save, X, ChevronRight, MapPin, Smile, ArrowLeft,
   Dumbbell, Scan, Cpu, ShieldCheck
 } from 'lucide-react';
+import jsQR from 'jsqr';
 import { Member, MembershipStatus } from '../types';
 import { identifyMemberByFace } from '../services/geminiService';
 
@@ -48,6 +49,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const kioskTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const faceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const CAPACIDAD_MAXIMA = 50;
 
   useEffect(() => {
@@ -68,6 +70,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
     } else {
       stopCamera();
       if (faceIntervalRef.current) clearInterval(faceIntervalRef.current);
+      if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
     }
   }, [isKioskMode]);
 
@@ -76,12 +79,55 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
     if (isKioskMode && isFaceMode && kioskStatus === 'idle' && !isAnalyzingFace) {
       faceIntervalRef.current = setInterval(() => {
         captureAndAnalyzeFace();
-      }, 5000); // Intenta reconocer cada 5 segundos si está en reposo
+      }, 5000); 
     } else {
       if (faceIntervalRef.current) clearInterval(faceIntervalRef.current);
     }
     return () => { if (faceIntervalRef.current) clearInterval(faceIntervalRef.current); };
   }, [isKioskMode, isFaceMode, kioskStatus, isAnalyzingFace]);
+
+  // Manejar el escaneo de QR cuando FaceMode NO está activo
+  useEffect(() => {
+    if (isKioskMode && !isFaceMode && kioskStatus === 'idle') {
+      qrIntervalRef.current = setInterval(() => {
+        scanQRCode();
+      }, 500); // Escanear QR cada 500ms
+    } else {
+      if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
+    }
+    return () => { if (qrIntervalRef.current) clearInterval(qrIntervalRef.current); };
+  }, [isKioskMode, !isFaceMode, kioskStatus]);
+
+  const scanQRCode = () => {
+    if (!videoRef.current || !canvasRef.current || kioskStatus !== 'idle') return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+
+        if (code && code.data) {
+          // El código QR debe contener el ID del miembro
+          const memberId = code.data.trim();
+          const memberExists = members.some(m => m.id === memberId);
+          
+          if (memberExists) {
+            handleCheckIn(memberId);
+          }
+        }
+      }
+    }
+  };
 
   const startCamera = async () => {
     setIsCameraActive(true);
@@ -332,7 +378,14 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
             <div className="relative z-10 w-full max-w-2xl px-10 text-center space-y-12 animate-in zoom-in-95 duration-500">
                <div className="space-y-4">
                  <h2 className="text-6xl font-black tracking-tighter leading-none italic uppercase">Escanea tu QR</h2>
-                 <p className="text-gray-400 text-xl font-medium">O ingresa tu nombre para registrar entrada</p>
+                 <p className="text-gray-400 text-xl font-medium">Muestra tu código frente a la cámara</p>
+               </div>
+
+               {/* QR Scanner Visual Overlay */}
+               <div className="relative w-64 h-64 mx-auto border-4 border-orange-500/30 rounded-3xl overflow-hidden">
+                  <div className="absolute inset-0 border-2 border-orange-500 rounded-2xl animate-pulse"></div>
+                  <div className="absolute top-0 left-0 w-full h-1 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-scan"></div>
+                  <QrCode size={120} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/10" />
                </div>
 
                <div className="relative group">

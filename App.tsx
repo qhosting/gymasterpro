@@ -21,6 +21,8 @@ import AttendanceTracker from './components/AttendanceTracker';
 import FinanceView from './components/FinanceView';
 import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
+import NutritionView from './components/NutritionView';
+import { Apple } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User>({
@@ -40,6 +42,7 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'Panel Control', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'finance', label: 'Pagos / Planes', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: Bell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MIEMBRO, UserRole.INSTRUCTOR] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [UserRole.SUPER_ADMIN] },
@@ -50,6 +53,7 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard members={members} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
       case 'attendance': return <AttendanceTracker members={members} />;
+      case 'nutrition': return <NutritionView members={members} />;
       case 'finance': return <FinanceView members={members} />;
       case 'notifications': return <NotificationsView members={members} />;
       case 'settings': return <SettingsView currentUser={currentUser} />;
@@ -102,6 +106,7 @@ const App: React.FC = () => {
                 <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
                 <option value={UserRole.ADMIN}>Admin</option>
                 <option value={UserRole.INSTRUCTOR}>Instructor</option>
+                <option value={UserRole.NUTRIOLOGO}>Nutriólogo</option>
                 <option value={UserRole.MIEMBRO}>Miembro</option>
              </select>
           </div>

@@ -1,5 +1,5 @@
 
-import { UserRole, MembershipStatus, Plan, Member, Transaction } from './types';
+import { UserRole, MembershipStatus, Plan, Member, Transaction, BodyMetrics, NutritionAppointment } from './types';
 
 export const GYM_PLANS: Plan[] = [
   { 
@@ -89,4 +89,16 @@ export const MOCK_MEMBERS: Member[] = [
     objetivo: 'Mantenimiento',
     ultimaAsistencia: '2024-02-01'
   }
+];
+
+export const MOCK_METRICS: BodyMetrics[] = [
+  { id: 'met1', memberId: 'm1', fecha: '2024-01-15', peso: 85, masaMuscular: 35, grasaCorporal: 25, agua: 55, imc: 27.5 },
+  { id: 'met2', memberId: 'm1', fecha: '2024-02-15', peso: 83, masaMuscular: 36, grasaCorporal: 23, agua: 56, imc: 26.8 },
+  { id: 'met3', memberId: 'm1', fecha: '2024-03-15', peso: 81, masaMuscular: 37, grasaCorporal: 21, agua: 58, imc: 26.1 },
+  { id: 'met4', memberId: 'm2', fecha: '2024-03-10', peso: 65, masaMuscular: 28, grasaCorporal: 22, agua: 60, imc: 22.5 },
+];
+
+export const MOCK_APPOINTMENTS: NutritionAppointment[] = [
+  { id: 'app1', memberId: 'm1', fecha: '2024-05-25', hora: '10:00', status: 'Programada' },
+  { id: 'app2', memberId: 'm2', fecha: '2024-05-26', hora: '11:30', status: 'Programada' },
 ];
