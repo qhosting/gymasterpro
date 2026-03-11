@@ -189,8 +189,8 @@ const App: React.FC = () => {
         flex flex-col shadow-2xl
       `}>
         <div className="p-6 flex items-center gap-3">
-          <div className="bg-orange-500 p-2 rounded-xl">
-            <Dumbbell size={24} className="text-white" />
+          <div className="bg-orange-500 w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/pwa-icon.png" alt="Logo" className="w-full h-full object-cover scale-110" />
           </div>
           {isSidebarOpen && <span className="font-black text-xl tracking-tight">GymMaster<span className="text-orange-500">PRO</span></span>}
         </div>

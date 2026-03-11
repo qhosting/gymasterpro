@@ -36,8 +36,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10 animate-in fade-in slide-in-from-top duration-700">
-          <div className="inline-flex p-4 bg-orange-500 rounded-[24px] shadow-2xl shadow-orange-500/20 mb-6 active:scale-95 transition-transform">
-            <Dumbbell size={40} className="text-white" />
+          <div className="inline-flex p-1 bg-orange-500 rounded-[32px] shadow-2xl shadow-orange-500/20 mb-6 active:scale-95 transition-transform overflow-hidden w-24 h-24 items-center justify-center">
+            <img src="/pwa-icon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
             GymMaster<span className="text-orange-500">PRO</span>
