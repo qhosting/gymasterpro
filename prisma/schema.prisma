@@ -10,6 +10,7 @@ model User {
   id       String  @id @default(uuid())
   nombre   String
   email    String  @unique
+  telefono String? @unique
   role     Role    @default(MIEMBRO)
   foto     String?
   password String?

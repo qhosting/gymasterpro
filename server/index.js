@@ -92,10 +92,17 @@ app.post('/api/upload', authenticateToken, upload.single('foto'), (req, res) => 
 });
 
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, identifier, password } = req.body;
+    const loginValue = identifier || email; // Soporta ambos nombres de campo
+
     try {
-        const user = await prisma.user.findUnique({
-            where: { email },
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: loginValue },
+                    { telefono: loginValue }
+                ]
+            },
             include: { member: true }
         });
 
@@ -212,6 +219,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
                 data: {
                     nombre: data.nombre,
                     email: data.email,
+                    telefono: data.telefono,
                     role: data.role || 'MIEMBRO',
                     foto: data.foto
                 }
@@ -254,6 +262,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
                 data: {
                     nombre: data.nombre,
                     email: data.email,
+                    telefono: data.telefono,
                     foto: data.foto
                 }
             });

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dumbbell, Lock, Mail, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Dumbbell, Lock, Mail, ChevronRight, Loader2, AlertCircle, Smartphone } from 'lucide-react';
 import { login } from '../services/apiService';
 
 interface LoginProps {
@@ -48,13 +48,17 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-[48px] shadow-2xl animate-in fade-in zoom-in duration-500">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4">Email Corporativo</label>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-4">Email o Teléfono</label>
               <div className="relative group">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-orange-500 transition-colors" size={20} />
+                {email.includes('@') ? (
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-orange-500 transition-colors" size={20} />
+                ) : (
+                  <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-orange-500 transition-colors" size={20} />
+                )}
                 <input 
-                  type="email" 
+                  type="text" 
                   required
-                  placeholder="admin@gymmaster.com"
+                  placeholder="admin@gymmaster.com o 442..."
                   className="w-full pl-14 pr-6 py-5 bg-white/5 border-2 border-transparent rounded-[24px] text-white font-bold outline-none focus:border-orange-500 focus:bg-white/10 transition-all placeholder:text-gray-600"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
