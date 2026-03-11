@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import fs from 'fs';
 import { createClient } from 'redis';
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -701,6 +702,80 @@ app.patch('/api/member/settings/:id', authenticateToken, async (req, res) => {
         res.json(member);
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar configuración' });
+    }
+});
+
+// --- AI & WHATSAPP SECURE ENDPOINTS ---
+
+// Generar análisis o plantillas con Gemini
+app.post('/api/ai/process', authenticateToken, async (req, res) => {
+    const { prompt, type, base64Image } = req.body;
+    try {
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+        if (!settings?.geminiKey) return res.status(400).json({ error: 'API Key de Gemini no configurada' });
+
+        const genAI = new GoogleGenAI(settings.geminiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        if (type === 'vision' && base64Image) {
+            const result = await model.generateContent([
+                prompt,
+                { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/jpeg' } }
+            ]);
+            return res.json({ text: result.response.text() });
+        }
+
+        const result = await model.generateContent(prompt);
+        res.json({ text: result.response.text() });
+    } catch (error) {
+        console.error('AI Process Error:', error);
+        res.status(500).json({ error: 'Error al procesar con IA' });
+    }
+});
+
+// Enviar WhatsApp vía WAHA
+app.post('/api/whatsapp/send', authenticateToken, async (req, res) => {
+    const { phone, text } = req.body;
+    try {
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+        if (!settings?.wahaUrl) return res.status(400).json({ error: 'WAHA no configurado' });
+
+        const chatId = phone.includes('@') ? phone : `${phone.replace('+', '')}@c.us`;
+        
+        const response = await fetch(`${settings.wahaUrl}/api/sendText`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(settings.wahaKey ? { 'X-Api-Key': settings.wahaKey } : {})
+            },
+            body: JSON.stringify({
+                chatId: chatId,
+                text: text,
+                session: 'default'
+            })
+        });
+
+        if (!response.ok) throw new Error('WAHA respondio con error');
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('WhatsApp Send Error:', error);
+        res.status(500).json({ error: 'Error al enviar mensaje' });
+    }
+});
+
+// Checar estado de WAHA
+app.get('/api/whatsapp/status', authenticateToken, async (req, res) => {
+    try {
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+        if (!settings?.wahaUrl) return res.json({ online: false });
+
+        const response = await fetch(`${settings.wahaUrl}/api/sessions/default`, {
+            headers: settings.wahaKey ? { 'X-Api-Key': settings.wahaKey } : {}
+        });
+        res.json({ online: response.ok });
+    } catch {
+        res.json({ online: false });
     }
 });
 

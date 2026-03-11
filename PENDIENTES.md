@@ -9,7 +9,7 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 ## 🔴 Prioridad Alta (Crítico)
 - [x] **Backend Real**: Implementar los endpoints de la API para conectar el frontend con Prisma.
 - [x] **Autenticación real**: Implementar flujo de Login real con seguridad JWT y recuperación de contraseñas.
-- [ ] **Seguridad de API Keys**: Mover las llamadas a Gemini y WAHA a un servidor backend para proteger las credenciales.
+- [x] **Seguridad de API Keys**: Mover las llamadas a Gemini y WAHA a un servidor backend para proteger las credenciales.
 
 ## 🟡 Prioridad Media (Funcional)
 - [x] **Carga de Archivos**: Implementar subida de imágenes localmente con Multer.
