@@ -132,3 +132,17 @@ model Exercise {
   videoUrl  String?
   routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 }
+
+model SystemSettings {
+  id               String  @id @default("default")
+  gymName          String  @default("GymMaster Pro")
+  aforoMaximo      Int     @default(50)
+  direccion        String?
+  horario          String?
+  wahaUrl          String?
+  wahaKey          String?
+  geminiKey        String?
+  ycloudKey        String? @map("ycloud_key")
+  pushEnabled      Boolean @default(true)
+  backupEnabled    Boolean @default(true)
+}

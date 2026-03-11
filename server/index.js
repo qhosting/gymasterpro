@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import fs from 'fs';
+import { createClient } from 'redis';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,22 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gym-master-pro-secret-key-2024';
+
+// Redis Setup
+const redisClient = createClient({
+    url: process.env.REDIS_URL
+});
+
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
+
+(async () => {
+    try {
+        await redisClient.connect();
+        console.log('Connected to Redis');
+    } catch (err) {
+        console.error('Could not connect to Redis', err);
+    }
+})();
 
 // Middleware para verificar JWT
 const authenticateToken = (req, res, next) => {
@@ -130,11 +147,42 @@ app.get('/api/me', authenticateToken, async (req, res) => {
     }
 });
 
+// --- ENDPOINTS DE STAFF ---
+app.get('/api/staff', authenticateToken, async (req, res) => {
+    try {
+        const staff = await prisma.user.findMany({
+            where: {
+                role: {
+                    in: ['ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'NUTRIOLOGO']
+                }
+            },
+            select: {
+                id: true,
+                nombre: true,
+                email: true,
+                role: true,
+                foto: true
+            }
+        });
+        res.json(staff);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener staff' });
+    }
+});
+
 // --- ENDPOINTS DE MIEMBROS ---
 
 // Listar miembros
 app.get('/api/members', authenticateToken, async (req, res) => {
     try {
+        const cacheKey = 'all_members_list';
+        const cachedData = await redisClient.get(cacheKey);
+
+        if (cachedData) {
+            console.log('Serving members from Redis cache');
+            return res.json(JSON.parse(cachedData));
+        }
+
         const members = await prisma.member.findMany({
             include: { user: true, plan: true }
         });
@@ -143,6 +191,11 @@ app.get('/api/members', authenticateToken, async (req, res) => {
             ...m,
             user: undefined
         }));
+
+        // Guardar en cache por 5 minutos
+        await redisClient.setEx(cacheKey, 300, JSON.stringify(transformedMembers));
+        
+        console.log('Serving members from Database and caching');
         res.json(transformedMembers);
     } catch (error) {
         console.error('Error fetching members:', error);
@@ -179,6 +232,10 @@ app.post('/api/members', authenticateToken, async (req, res) => {
 
             return { ...user, ...member };
         });
+
+        // Invalidar cache de miembros
+        await redisClient.del('all_members_list');
+        
         res.status(201).json(result);
     } catch (error) {
         console.error('Error creating member:', error);
@@ -216,6 +273,10 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
 
             return member;
         });
+
+        // Invalidar cache de miembros
+        await redisClient.del('all_members_list');
+        
         res.json(result);
     } catch (error) {
         console.error('Error updating member:', error);
@@ -229,6 +290,10 @@ app.delete('/api/members/:id', authenticateToken, async (req, res) => {
     try {
         await prisma.member.delete({ where: { id } });
         await prisma.user.delete({ where: { id } });
+
+        // Invalidar cache de miembros
+        await redisClient.del('all_members_list');
+        
         res.json({ message: 'Miembro eliminado con éxito' });
     } catch (error) {
         console.error('Error deleting member:', error);
@@ -336,6 +401,43 @@ app.get('/api/stats/attendance', authenticateToken, async (req, res) => {
         res.json(stats);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener estadísticas' });
+    }
+});
+
+// --- CONFIGURACIÓN DEL SISTEMA ---
+
+// Obtener configuración
+app.get('/api/settings', authenticateToken, async (req, res) => {
+    try {
+        let settings = await prisma.systemSettings.findUnique({
+            where: { id: 'default' }
+        });
+
+        if (!settings) {
+            settings = await prisma.systemSettings.create({
+                data: { id: 'default' }
+            });
+        }
+        res.json(settings);
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Actualizar configuración
+app.put('/api/settings', authenticateToken, async (req, res) => {
+    try {
+        const data = req.body;
+        const settings = await prisma.systemSettings.upsert({
+            where: { id: 'default' },
+            update: data,
+            create: { ...data, id: 'default' }
+        });
+        res.json(settings);
+    } catch (error) {
+        console.error('Error updating settings:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 

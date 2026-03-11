@@ -240,3 +240,29 @@ export const updateMemberSettings = async (id: string, settings: any) => {
     if (!response.ok) throw new Error('Failed to update settings');
     return await response.json();
 };
+
+export const fetchSystemSettings = async () => {
+    const response = await fetch(`${API_URL}/settings`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch system settings');
+    return await response.json();
+};
+
+export const updateSystemSettings = async (settings: any) => {
+    const response = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(settings)
+    });
+    if (!response.ok) throw new Error('Failed to update system settings');
+    return await response.json();
+};
+
+export const fetchStaff = async () => {
+    const response = await fetch(`${API_URL}/staff`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch staff');
+    return await response.json();
+};

@@ -4,6 +4,7 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 
 ## 🚧 En Progreso
 - [x] **Migración a Base de Datos**: Integración con PostgreSQL (`gympro-old-db`) usando Prisma y Node.js.
+- [x] **Capas de Cache**: Implementación de **Redis** para optimizar la velocidad de respuesta en listados de socios.
 
 ## 🔴 Prioridad Alta (Crítico)
 - [x] **Backend Real**: Implementar los endpoints de la API para conectar el frontend con Prisma.
@@ -20,7 +21,7 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 - [ ] **Modo Offline**: Implementar almacenamiento local (IndexedDB) para permitir lectura de datos sin conexión.
 - [ ] **Temas Personalizados**: Opción de Modo Oscuro o cambio de colores de marca según el gimnasio.
 - [x] **Notificaciones Push**: Scaffold e interfaz de configuración listos para producción.
-- [ ] **Tests Unitarios**: Añadir cobertura de pruebas con Vitest y Testing Library.
+- [x] **Tests Unitarios**: Configuración con Vitest y Testing Library completada con pruebas iniciales.
 
 ## 🚀 Innovación (Futuro)
 - [x] **Entrenamiento Inteligente**: Generador de rutinas mediante IA/Plantillas basado en objetivos.

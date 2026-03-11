@@ -7,6 +7,7 @@ import {
   Zap, Info, Cloud, Download, Apple, Layout
 } from 'lucide-react';
 import { User, UserRole } from '../types';
+import { fetchSystemSettings, updateSystemSettings, fetchStaff } from '../services/apiService';
 
 interface SettingsViewProps {
   currentUser: User;
@@ -14,11 +15,24 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
   const [activeSection, setActiveSection] = useState<'general' | 'personal' | 'integraciones' | 'seguridad' | 'movil'>('general');
-  const [gymName, setGymName] = useState('GymMaster Pro');
   const [isSaving, setIsSaving] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [settings, setSettings] = useState({
+    gymName: 'GymMaster Pro',
+    aforoMaximo: 50,
+    direccion: '',
+    horario: '',
+    wahaUrl: '',
+    wahaKey: '',
+    geminiKey: '',
+    ycloudKey: '',
+    pushEnabled: true,
+    backupEnabled: true
+  });
 
   useEffect(() => {
+    loadSettings();
+    loadStaff();
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -26,6 +40,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const data = await fetchSystemSettings();
+      if (data) setSettings(data);
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -36,18 +59,27 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     }
   };
 
-  // Mock staff data
-  const [staff, setStaff] = useState([
-    { id: 's1', nombre: 'Carlos Entrenador', email: 'carlos@gym.com', role: UserRole.INSTRUCTOR, status: 'Online' },
-    { id: 's2', nombre: 'Ana Admin', email: 'ana@gym.com', role: UserRole.ADMIN, status: 'Offline' },
-  ]);
+  const [staff, setStaff] = useState<any[]>([]);
 
-  const handleSave = () => {
+  const loadStaff = async () => {
+    try {
+      const data = await fetchStaff();
+      setStaff(data);
+    } catch (error) {
+      console.error("Error loading staff:", error);
+    }
+  };
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await updateSystemSettings(settings);
       alert('Configuración guardada exitosamente');
-    }, 1500);
+    } catch (error) {
+      alert('Error al guardar la configuración');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const menuItems = [
@@ -119,8 +151,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Nombre del Gimnasio</label>
                   <input 
                     className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold"
-                    value={gymName}
-                    onChange={(e) => setGymName(e.target.value)}
+                    value={settings.gymName}
+                    onChange={(e) => setSettings({ ...settings, gymName: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -128,21 +160,30 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                   <input 
                     type="number"
                     className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold"
-                    defaultValue={50}
+                    value={settings.aforoMaximo}
+                    onChange={(e) => setSettings({ ...settings, aforoMaximo: parseInt(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Dirección Principal</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 font-medium" defaultValue="Av. Fitness 123, Ciudad" />
+                    <input 
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
+                      value={settings.direccion}
+                      onChange={(e) => setSettings({ ...settings, direccion: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Horario de Atención</label>
                   <div className="relative">
                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 font-medium" defaultValue="06:00 AM - 10:00 PM" />
+                    <input 
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
+                      value={settings.horario}
+                      onChange={(e) => setSettings({ ...settings, horario: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
@@ -217,37 +258,59 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                 <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-4">
                   <div className="flex justify-between items-center">
                     <div className="p-3 bg-green-100 text-green-600 rounded-2xl"><Smartphone size={24} /></div>
-                    <span className="text-[10px] font-black uppercase text-green-600">Activo</span>
+                    <span className="text-[10px] font-black uppercase text-green-600">Base</span>
                   </div>
                   <h3 className="text-xl font-bold">WhatsApp WAHA</h3>
-                  <p className="text-sm text-gray-500">Conectado para envíos automáticos y notificaciones de pago.</p>
-                  <div className="pt-4 flex gap-2">
-                    <button className="flex-1 py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors">Probar Conexión</button>
-                    <button className="p-3 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-orange-500"><Settings size={18}/></button>
+                  <div className="space-y-3">
+                    <input 
+                      placeholder="URL de API (ej: http://localhost:3000)"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      value={settings.wahaUrl}
+                      onChange={(e) => setSettings({ ...settings, wahaUrl: e.target.value })}
+                    />
+                    <input 
+                      type="password"
+                      placeholder="WAHA API Key"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      value={settings.wahaKey}
+                      onChange={(e) => setSettings({ ...settings, wahaKey: e.target.value })}
+                    />
                   </div>
                 </div>
 
                 <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-4">
                   <div className="flex justify-between items-center">
                     <div className="p-3 bg-purple-100 text-purple-600 rounded-2xl"><Zap size={24} /></div>
-                    <span className="text-[10px] font-black uppercase text-purple-600">Premium</span>
+                    <span className="text-[10px] font-black uppercase text-purple-600">AI</span>
                   </div>
                   <h3 className="text-xl font-bold">Gemini AI Engine</h3>
-                  <p className="text-sm text-gray-500">Motor de análisis predictivo y redacción de mensajes inteligentes.</p>
-                  <div className="pt-4 flex gap-2">
-                    <button className="flex-1 py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors">Configurar IA</button>
-                    <button className="p-3 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-orange-500"><Key size={18}/></button>
+                  <div className="space-y-3">
+                    <input 
+                      type="password"
+                      placeholder="Google Gemini API Key"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      value={settings.geminiKey}
+                      onChange={(e) => setSettings({ ...settings, geminiKey: e.target.value })}
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-orange-500 p-8 rounded-[40px] text-white overflow-hidden relative">
-                <div className="relative z-10 space-y-2">
-                  <h3 className="text-xl font-black">¿Necesitas una API personalizada?</h3>
-                  <p className="text-sm opacity-90 font-medium">Contacta con soporte para integraciones con relojes inteligentes o básculas Bio-impedancia.</p>
-                  <button className="mt-4 px-6 py-3 bg-white text-orange-600 rounded-2xl font-black text-sm hover:scale-105 transition-transform">Contactar Soporte</button>
+                <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Cloud size={24} /></div>
+                    <span className="text-[10px] font-black uppercase text-blue-600">WhatsApp Biz</span>
+                  </div>
+                  <h3 className="text-xl font-bold">YCloud Integration</h3>
+                  <div className="space-y-3">
+                    <input 
+                      type="password"
+                      placeholder="YCloud API Key"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                      value={settings.ycloudKey}
+                      onChange={(e) => setSettings({ ...settings, ycloudKey: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <Cloud size={150} className="absolute -bottom-10 -right-10 text-white/10" />
               </div>
             </div>
           )}

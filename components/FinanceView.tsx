@@ -9,6 +9,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
 import { GYM_PLANS } from '../constants';
 import { recordTransaction, fetchTransactions, fetchPlans } from '../services/apiService';
+import { generateReceiptPDF, generateFinanceReportPDF } from '../utils/pdfGenerator';
 
 interface FinanceViewProps {
   members: Member[];
@@ -112,13 +113,21 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Finanzas & Membresías</h1>
           <p className="text-gray-500">Control total de ingresos, planes y flujo de caja.</p>
         </div>
-        <button 
-          onClick={() => setIsPaymentModalOpen(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-orange-500/20"
-        >
-          <Wallet size={20} />
-          Cobro Rápido (TPV)
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => generateFinanceReportPDF(transactions, { totalIngresos: totalRecaudado })}
+            className="bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+          >
+            <Download size={20} /> Reporte PDF
+          </button>
+          <button 
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-orange-500/20"
+          >
+            <Wallet size={20} />
+            Cobro Rápido (TPV)
+          </button>
+        </div>
       </div>
 
       {/* Tabs Menu */}
@@ -295,7 +304,15 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
                       }`}>{tx.status}</span>
                     </td>
                     <td className="px-8 py-5">
-                       <button className="p-2 text-gray-400 hover:text-orange-500 transition-colors"><Receipt size={18}/></button>
+                       <button 
+                        onClick={() => {
+                          const member = members.find(m => m.id === tx.memberId);
+                          if (member) generateReceiptPDF(tx, member);
+                        }}
+                        className="p-2 text-gray-400 hover:text-orange-500 transition-colors"
+                       >
+                        <Receipt size={18}/>
+                       </button>
                     </td>
                   </tr>
                 ))}

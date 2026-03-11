@@ -102,9 +102,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </div>
         
         <div className="mt-10 text-center">
-          <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]">
-            v3.0.1 ALPHA • POWERED BY CLOUD ENGINE
-          </p>
+          <a 
+            href="https://aurumcapital.mx" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] hover:text-orange-500 transition-colors cursor-pointer"
+          >
+            v3.0.1 ALPHA • POWERED BY AURUM CAPITAL
+          </a>
         </div>
       </div>
     </div>
