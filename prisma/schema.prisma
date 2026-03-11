@@ -30,12 +30,18 @@ model Member {
   notas              String?
   ultimaAsistencia   DateTime?
   rachaDias          Int              @default(0)
+  puntosComunidad    Int              @default(0)
+  conectadoApple     Boolean          @default(false)
+  conectadoGoogle    Boolean          @default(false)
+  pushEnabled        Boolean          @default(true)
+  logros             String[]         @default([])
   appointments       Appointment[]
   attendance         Attendance[]
   metrics            BodyMetrics[]
   user               User             @relation(fields: [id], references: [id])
   plan               Plan             @relation(fields: [planId], references: [id])
   transactions       Transaction[]
+  routines           Routine[]
 }
 
 model Plan {
@@ -101,4 +107,28 @@ enum MembershipStatus {
   ACTIVO
   VENCIDO
   PENDIENTE
+}
+
+model Routine {
+  id          String     @id @default(uuid())
+  memberId    String
+  nombre      String
+  descripcion String?
+  fecha       DateTime   @default(now())
+  instructor  String?
+  objetivo    String?
+  exercises   Exercise[]
+  member      Member     @relation(fields: [memberId], references: [id])
+}
+
+model Exercise {
+  id        String  @id @default(uuid())
+  routineId String
+  nombre    String
+  series    Int
+  reps      String
+  descanso  String?
+  notas     String?
+  videoUrl  String?
+  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 }

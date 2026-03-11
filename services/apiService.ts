@@ -117,11 +117,44 @@ export const recordTransaction = async (transactionData: any) => {
     return await response.json();
 };
 
-export const fetchMemberMetrics = async (memberId: string) => {
-    const response = await fetch(`${API_URL}/nutrition/metrics/${memberId}`, {
+export const fetchTransactions = async () => {
+    const response = await fetch(`${API_URL}/transactions`, {
         headers: getHeaders()
     });
-    if (!response.ok) throw new Error('Failed to fetch metrics');
+    if (!response.ok) throw new Error('Failed to fetch transactions');
+    return await response.json();
+};
+
+export const fetchAttendanceStats = async () => {
+    const response = await fetch(`${API_URL}/stats/attendance`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch attendance stats');
+    return await response.json();
+};
+
+export const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('foto', file);
+    
+    const token = localStorage.getItem('gym-token');
+    const response = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: formData
+    });
+    
+    if (!response.ok) throw new Error('Failed to upload file');
+    return await response.json();
+};
+
+export const fetchFullNutritionData = async (memberId: string) => {
+    const response = await fetch(`${API_URL}/nutrition/data/${memberId}`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch nutrition data');
     return await response.json();
 };
 
@@ -151,5 +184,59 @@ export const createAppointment = async (appointmentData: any) => {
         body: JSON.stringify(appointmentData)
     });
     if (!response.ok) throw new Error('Failed to create appointment');
+    return await response.json();
+};
+
+export const fetchRoutines = async (memberId: string) => {
+    const response = await fetch(`${API_URL}/training/routines/${memberId}`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch routines');
+    return await response.json();
+};
+
+export const createRoutine = async (routineData: any) => {
+    const response = await fetch(`${API_URL}/training/routines`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(routineData)
+    });
+    if (!response.ok) throw new Error('Failed to create routine');
+    return await response.json();
+};
+
+export const generateSmartRoutine = async (memberId: string, objetivo: string) => {
+    const response = await fetch(`${API_URL}/training/generate`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ memberId, objetivo })
+    });
+    if (!response.ok) throw new Error('Failed to generate routine');
+    return await response.json();
+};
+
+export const fetchRankings = async () => {
+    const response = await fetch(`${API_URL}/community/rankings`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch rankings');
+    return await response.json();
+};
+
+export const fetchFullProfile = async (id: string) => {
+    const response = await fetch(`${API_URL}/member/profile/${id}`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch profile');
+    return await response.json();
+};
+
+export const updateMemberSettings = async (id: string, settings: any) => {
+    const response = await fetch(`${API_URL}/member/settings/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(settings)
+    });
+    if (!response.ok) throw new Error('Failed to update settings');
     return await response.json();
 };

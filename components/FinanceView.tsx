@@ -7,8 +7,8 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
-import { GYM_PLANS, MOCK_TRANSACTIONS, MOCK_APPOINTMENTS } from '../constants';
-import { recordTransaction } from '../services/apiService';
+import { GYM_PLANS } from '../constants';
+import { recordTransaction, fetchTransactions, fetchPlans } from '../services/apiService';
 
 interface FinanceViewProps {
   members: Member[];
@@ -18,8 +18,25 @@ interface FinanceViewProps {
 const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'plans'>('overview');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
-  const [plans, setPlans] = useState<Plan[]>(GYM_PLANS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+
+  React.useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [txData, plansData] = await Promise.all([
+        fetchTransactions(),
+        fetchPlans()
+      ]);
+      setTransactions(txData);
+      setPlans(plansData);
+    } catch (error) {
+      console.error("Error loading finance data:", error);
+    }
+  };
   
   // Payment Form State
   const [paymentData, setPaymentData] = useState({

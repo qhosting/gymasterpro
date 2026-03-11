@@ -12,7 +12,8 @@ import {
   Dumbbell,
   Settings,
   ChevronRight,
-  Loader2
+  Loader2,
+  Trophy
 } from 'lucide-react';
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
@@ -25,6 +26,8 @@ import FinanceView from './components/FinanceView';
 import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
+import TrainingView from './components/TrainingView';
+import CommunityView from './components/CommunityView';
 import MemberProfile from './components/MemberProfile';
 import Login from './components/Login';
 import { fetchMembers, getMe, logout } from './services/apiService';
@@ -35,7 +38,7 @@ const App: React.FC = () => {
   const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
+  const [members, setMembers] = useState<Member[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationLog[]>([
@@ -121,6 +124,8 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'Panel Control', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
+    { id: 'community', label: 'Comunidad', icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO, UserRole.NUTRIOLOGO] },
     { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'profile', label: 'Mi Perfil', icon: UserIcon, roles: [UserRole.MIEMBRO] },
     { id: 'finance', label: 'Pagos / Planes', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
@@ -134,6 +139,8 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard members={members} currentUser={currentUser} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
       case 'attendance': return <AttendanceTracker members={members} />;
+      case 'training': return <TrainingView members={members} currentUser={currentUser} />;
+      case 'community': return <CommunityView />;
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
@@ -165,9 +172,22 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`bg-gray-900 text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col shadow-2xl z-50`}>
+    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[60] lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar (Drawer on mobile, permanent on desktop) */}
+      <aside className={`
+        fixed lg:relative inset-y-0 left-0 z-[70] 
+        bg-gray-900 text-white transition-all duration-500 transform
+        ${isSidebarOpen ? 'translate-x-0 w-72 lg:w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'} 
+        flex flex-col shadow-2xl
+      `}>
         <div className="p-6 flex items-center gap-3">
           <div className="bg-orange-500 p-2 rounded-xl">
             <Dumbbell size={24} className="text-white" />
@@ -175,17 +195,20 @@ const App: React.FC = () => {
           {isSidebarOpen && <span className="font-black text-xl tracking-tight">GymMaster<span className="text-orange-500">PRO</span></span>}
         </div>
 
-        <nav className="flex-1 mt-6 px-4 space-y-2">
+        <nav className="flex-1 mt-6 px-4 space-y-2 custom-scrollbar overflow-y-auto">
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-4 p-3.5 rounded-2xl transition-all ${
+              onClick={() => {
+                setActiveTab(item.id);
+                if (window.innerWidth < 1024) setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
                 activeTab === item.id ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/20' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
               <item.icon size={22} />
-              {isSidebarOpen && <span className="font-bold text-sm tracking-wide">{item.label}</span>}
+              <span className={`font-bold text-sm tracking-wide ${!isSidebarOpen && 'lg:hidden'}`}>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -233,20 +256,26 @@ const App: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-20 flex items-center justify-between px-10 sticky top-0 z-40">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-20 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 text-gray-500 hover:bg-gray-50 rounded-2xl transition-all active:scale-95 border border-transparent hover:border-gray-100">
               <Menu size={22} />
             </button>
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100">
+            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100">
               <ShieldCheck size={18} className="text-green-500" />
-              <span className="text-[11px] font-black uppercase tracking-widest text-gray-600">Servidor: Online</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Servidor Seguro</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-6">
+            <button 
+               onClick={handleLogout}
+               className="lg:hidden p-3 text-gray-400 hover:text-red-500 transition-colors"
+            >
+               <LogOut size={20} />
+            </button>
             <div className="relative">
               <button 
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
@@ -291,10 +320,26 @@ const App: React.FC = () => {
         </header>
 
         {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar pb-24 lg:pb-10">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>
+        </div>
+
+        {/* Bottom Mobile Navigation */}
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 bg-gray-900/95 backdrop-blur-md rounded-[32px] p-2 flex justify-around items-center z-[50] shadow-2xl border border-white/10">
+           {menuItems.slice(0, 5).map(item => (
+             <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${
+                activeTab === item.id ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-400'
+              }`}
+             >
+               <item.icon size={20} className={activeTab === item.id ? 'scale-110' : ''} />
+               <span className="text-[7px] font-black uppercase tracking-widest">{item.label.split(' ')[0]}</span>
+             </button>
+           ))}
         </div>
       </main>
     </div>

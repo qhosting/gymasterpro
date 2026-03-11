@@ -4,11 +4,27 @@ import {
   Search, Filter, Plus, Edit2, Trash2, Camera, X, Check, 
   Phone, Download, Calendar, User, ShieldAlert,
   ChevronRight, RefreshCw, Eye, Tag, CreditCard, SlidersHorizontal,
-  Dumbbell, Apple, Clock, Save
+  Dumbbell, Apple, Clock, Save, Loader2
 } from 'lucide-react';
 import { Member, MembershipStatus, UserRole, NutritionAppointment } from '../types';
 import { MOCK_APPOINTMENTS } from '../constants';
-import { createMember, updateMember, deleteMember } from '../services/apiService';
+import { createMember, updateMember, deleteMember, uploadFile } from '../services/apiService';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const memberSchema = z.object({
+  nombre: z.string().min(3, 'Mínimo 3 caracteres'),
+  email: z.string().email('Email inválido'),
+  telefono: z.string().min(10, 'Mínimo 10 dígitos'),
+  planId: z.string(),
+  objetivo: z.string().optional(),
+  contactoEmergencia: z.string().optional(),
+  telefonoEmergencia: z.string().optional(),
+  password: z.string().min(6, 'Mínimo 6 caracteres').optional(),
+});
+
+type MemberFormData = z.infer<typeof memberSchema>;
 
 interface MembersListProps {
   members: Member[];
@@ -30,15 +46,15 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [newMember, setNewMember] = useState({
-    nombre: '',
-    email: '',
-    telefono: '',
-    plan: '1',
-    objetivo: 'Pérdida de peso',
-    contactoEmergencia: '',
-    telefonoEmergencia: ''
+  const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<MemberFormData>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: {
+      planId: '1',
+      objetivo: 'Pérdida de peso'
+    }
   });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   // Advanced Filtering Logic
   const filteredMembers = members.filter(m => {
@@ -99,39 +115,47 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
     setIsCameraActive(false);
   };
 
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const processAddMember = async (data: MemberFormData) => {
+    setIsLoading(true);
     try {
+      let finalFoto = `https://picsum.photos/seed/${data.nombre}/100/100`;
+
+      if (capturedImage) {
+        // Convert base64 to File
+        const res = await fetch(capturedImage);
+        const blob = await res.blob();
+        const file = new File([blob], "captured-photo.png", { type: "image/png" });
+        const uploadRes = await uploadFile(file);
+        finalFoto = uploadRes.url;
+      }
+
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
 
       const memberData = {
-        nombre: newMember.nombre,
-        email: newMember.email,
-        telefono: newMember.telefono,
-        planId: newMember.plan,
+        ...data,
         fechaVencimiento: expirationDate.toISOString(),
         role: UserRole.MIEMBRO,
         status: MembershipStatus.ACTIVO,
         deuda: 0,
-        foto: capturedImage || `https://picsum.photos/seed/${newMember.nombre}/100/100`,
-        objetivo: newMember.objetivo,
-        contactoEmergencia: newMember.contactoEmergencia,
-        telefonoEmergencia: newMember.telefonoEmergencia
+        foto: finalFoto,
       };
 
       const savedMember = await createMember(memberData);
       setMembers([savedMember, ...members]);
       setIsModalOpen(false);
-      resetForm();
+      reset();
+      setCapturedImage(null);
     } catch (error) {
       console.error("Error adding member:", error);
-      alert("Error al guardar el socio en la base de datos.");
+      alert("Error al guardar el socio.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    setNewMember({ nombre: '', email: '', telefono: '', plan: '1', objetivo: 'Pérdida de peso', contactoEmergencia: '', telefonoEmergencia: '' });
+    reset();
     setCapturedImage(null);
   };
 
@@ -553,10 +577,10 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
 
       {/* Add Member Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-lg animate-in fade-in duration-300 p-4">
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[50px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row border border-white/20">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-lg animate-in fade-in duration-300 p-0 sm:p-4">
+          <div className="bg-white w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden sm:rounded-[50px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row border border-white/20">
             {/* Camera / Photo Section */}
-            <div className="md:w-5/12 bg-gray-900 p-12 flex flex-col items-center justify-center space-y-10 relative">
+            <div className="md:w-5/12 bg-gray-900 p-8 sm:p-12 flex flex-col items-center justify-center space-y-6 sm:space-y-10 relative">
                <div className="text-center">
                  <h3 className="text-2xl font-black text-white tracking-tight">Registro Facial</h3>
                  <p className="text-gray-500 text-sm mt-2">Captura la identidad del nuevo socio.</p>
@@ -579,14 +603,31 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                   )}
                </div>
 
-               <div className="flex gap-4 w-full">
+                <div className="flex flex-col gap-4 w-full">
                   {!isCameraActive ? (
-                    <button 
-                      onClick={startCamera}
-                      className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
-                    >
-                      <Camera size={22} /> {capturedImage ? 'Recapturar' : 'Iniciar Cámara'}
-                    </button>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={startCamera}
+                        className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
+                      >
+                        <Camera size={22} /> {capturedImage ? 'Recapturar' : 'Iniciar Cámara'}
+                      </button>
+                      <label className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all cursor-pointer">
+                        <Plus size={22} /> Subir Foto
+                        <input 
+                          type="file" 
+                          hidden 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            if (e.target.files?.[0]) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => setCapturedImage(event.target?.result as string);
+                              reader.readAsDataURL(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   ) : (
                     <button 
                       onClick={capturePhoto}
@@ -595,77 +636,81 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                       <Check size={22} /> Validar Identidad
                     </button>
                   )}
-               </div>
+                </div>
                
                <Dumbbell size={150} className="absolute -bottom-10 -left-10 text-white/5 -rotate-12" />
             </div>
 
             {/* Form Section */}
-            <div className="md:w-7/12 p-12 overflow-y-auto bg-white custom-scrollbar">
-              <div className="flex justify-between items-center mb-10">
-                <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Ficha de Inscripción</h2>
-                <button onClick={() => { setIsModalOpen(false); stopCamera(); resetForm(); }} className="p-4 hover:bg-gray-100 rounded-3xl transition-all"><X size={28}/></button>
+            <div className="md:w-7/12 p-8 sm:p-12 overflow-y-auto bg-white custom-scrollbar">
+              <div className="flex justify-between items-center mb-6 sm:mb-10">
+                <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter">Inscripción</h2>
+                <button onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} className="p-3 hover:bg-gray-100 rounded-3xl transition-all"><X size={28}/></button>
               </div>
               
-              <form onSubmit={handleAddMember} className="space-y-8">
+              <form onSubmit={handleSubmit(processAddMember)} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nombre del Socio</label>
                     <input 
-                      type="text" required
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
-                      value={newMember.nombre}
-                      onChange={(e) => setNewMember({...newMember, nombre: e.target.value})}
+                      {...register('nombre')}
+                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.nombre ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
                       placeholder="Ej: Juan Pérez"
                     />
+                    {errors.nombre && <p className="text-[10px] text-red-500 font-bold">{errors.nombre.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correo Electrónico</label>
                     <input 
-                      type="email" required
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
-                      value={newMember.email}
-                      onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                      {...register('email')}
+                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.email ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
                       placeholder="email@ejemplo.com"
                     />
+                    {errors.email && <p className="text-[10px] text-red-500 font-bold">{errors.email.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">WhatsApp (Con Lada)</label>
                     <input 
-                      type="text"
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
-                      value={newMember.telefono}
-                      onChange={(e) => setNewMember({...newMember, telefono: e.target.value})}
+                      {...register('telefono')}
+                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.telefono ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
                       placeholder="52155..."
                     />
+                    {errors.telefono && <p className="text-[10px] text-red-500 font-bold">{errors.telefono.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contraseña de acceso</label>
+                    <input 
+                      {...register('password')}
+                      type="password"
+                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.password ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
+                      placeholder="••••••••"
+                    />
+                    {errors.password && <p className="text-[10px] text-red-500 font-bold">{errors.password.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selección de Plan</label>
                     <select 
+                      {...register('planId')}
                       className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all cursor-pointer"
-                      value={newMember.plan}
-                      onChange={(e) => setNewMember({...newMember, plan: e.target.value})}
                     >
                       <option value="1">Plan Básico (Mensual)</option>
                       <option value="2">Plan Premium (Trimestral)</option>
                       <option value="3">Plan Anual (VIP)</option>
                     </select>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Meta de Entrenamiento</label>
-                  <select 
-                    className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
-                    value={newMember.objetivo}
-                    onChange={(e) => setNewMember({...newMember, objetivo: e.target.value})}
-                  >
-                    <option>Pérdida de peso</option>
-                    <option>Ganancia muscular</option>
-                    <option>Resistencia / Cardio</option>
-                    <option>Mantenimiento</option>
-                    <option>Preparación Competencia</option>
-                  </select>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Meta de Entrenamiento</label>
+                    <select 
+                      {...register('objetivo')}
+                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
+                    >
+                      <option>Pérdida de peso</option>
+                      <option>Ganancia muscular</option>
+                      <option>Resistencia / Cardio</option>
+                      <option>Mantenimiento</option>
+                      <option>Preparación Competencia</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="p-8 bg-orange-50 rounded-[40px] border border-orange-100 space-y-6">
@@ -674,25 +719,24 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                    </h4>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <input 
+                        {...register('contactoEmergencia')}
                         placeholder="Nombre de contacto"
                         className="w-full p-4 bg-white border-none rounded-2xl outline-none font-bold shadow-sm"
-                        value={newMember.contactoEmergencia}
-                        onChange={(e) => setNewMember({...newMember, contactoEmergencia: e.target.value})}
                       />
                       <input 
+                        {...register('telefonoEmergencia')}
                         placeholder="Teléfono de contacto"
                         className="w-full p-4 bg-white border-none rounded-2xl outline-none font-bold shadow-sm"
-                        value={newMember.telefonoEmergencia}
-                        onChange={(e) => setNewMember({...newMember, telefonoEmergencia: e.target.value})}
                       />
                    </div>
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-black shadow-[0_20px_50px_-10px_rgba(0,0,0,0.3)] transition-all transform active:scale-95 flex items-center justify-center gap-4"
+                  disabled={isLoading}
+                  className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-black shadow-[0_20px_50px_-10px_rgba(0,0,0,0.3)] transition-all transform active:scale-95 flex items-center justify-center gap-4 disabled:opacity-50"
                 >
-                  Finalizar Alta de Socio <ChevronRight size={24}/>
+                  {isLoading ? <Loader2 className="animate-spin" /> : <>Finalizar Alta de Socio <ChevronRight size={24}/></>}
                 </button>
               </form>
             </div>

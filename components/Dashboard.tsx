@@ -4,11 +4,13 @@ import { TrendingUp, Users, CreditCard, Clock, BrainCircuit, Calendar, Apple, Ch
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Member, MembershipStatus, User, UserRole } from '../types';
 import { getGymAnalyticsSummary } from '../services/geminiService';
-import { MOCK_APPOINTMENTS } from '../constants';
+import { fetchAppointments, fetchAttendanceStats } from '../services/apiService';
 
 const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members, currentUser }) => {
   const [aiSummary, setAiSummary] = useState<string>("Analizando datos del gimnasio...");
   const [isAiLoading, setIsAiLoading] = useState(true);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [dataAsistencia, setDataAsistencia] = useState<any[]>([]);
   const isNutri = currentUser.role === UserRole.NUTRIOLOGO;
 
   const stats = {
@@ -16,7 +18,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members
     activos: members.filter(m => m.status === MembershipStatus.ACTIVO).length,
     vencidos: members.filter(m => m.status === MembershipStatus.VENCIDO).length,
     ingresosEstimados: members.reduce((acc, m) => acc + (m.status === MembershipStatus.ACTIVO ? 350 : 0), 0),
-    citasHoy: MOCK_APPOINTMENTS.length // Simplified for demo
+    citasHoy: appointments.length
   };
 
   useEffect(() => {
@@ -26,18 +28,30 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members
       setAiSummary(summary);
       setIsAiLoading(false);
     };
+    
+    const loadAppointments = async () => {
+      try {
+        const data = await fetchAppointments();
+        setAppointments(data.slice(0, 5)); // Hoy
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const loadStats = async () => {
+      try {
+        const stats = await fetchAttendanceStats();
+        setDataAsistencia(stats);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchAiAnalysis();
+    loadAppointments();
+    loadStats();
   }, [members]);
 
-  const dataAsistencia = [
-    { name: 'Lun', visitas: 45 },
-    { name: 'Mar', visitas: 52 },
-    { name: 'Mie', visitas: 38 },
-    { name: 'Jue', visitas: 65 },
-    { name: 'Vie', visitas: 48 },
-    { name: 'Sab', visitas: 30 },
-    { name: 'Dom', visitas: 15 },
-  ];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -81,7 +95,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members
                 <button className="text-orange-500 font-bold text-sm">Ver calendario completo</button>
               </div>
               <div className="space-y-4">
-                {MOCK_APPOINTMENTS.map(app => {
+                {appointments.map(app => {
                   const member = members.find(m => m.id === app.memberId);
                   return (
                     <div key={app.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl hover:bg-orange-50 transition-all group">

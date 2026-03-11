@@ -98,3 +98,24 @@ export interface NutritionAppointment {
   status: 'Programada' | 'Completada' | 'Cancelada';
   notas?: string;
 }
+
+export interface Exercise {
+  id?: string;
+  nombre: string;
+  series: number;
+  reps: string;
+  descanso?: string;
+  notas?: string;
+  videoUrl?: string;
+}
+
+export interface Routine {
+  id: string;
+  memberId: string;
+  nombre: string;
+  descripcion?: string;
+  fecha: string;
+  instructor?: string;
+  objetivo?: string;
+  exercises: Exercise[];
+}

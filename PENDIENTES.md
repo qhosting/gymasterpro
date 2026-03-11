@@ -11,18 +11,19 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 - [ ] **Seguridad de API Keys**: Mover las llamadas a Gemini y WAHA a un servidor backend para proteger las credenciales.
 
 ## 🟡 Prioridad Media (Funcional)
-- [ ] **Carga de Archivos**: Implementar subida real de imágenes a un storage (S3/Cloudinary) para las fotos de perfil.
-- [ ] **Generación de QR**: Crear generador de códigos QR únicos por miembro dentro de su perfil.
+- [x] **Carga de Archivos**: Implementar subida de imágenes localmente con Multer.
+- [x] **Generación de QR**: Generador de códigos QR únicos por miembro integrado en el perfil.
 - [ ] **Reportes en PDF**: Exportación de estados financieros y recibos de pago.
-- [ ] **Validación de Formularios**: Agregar bibliotecas como Zod o Yup para validar entradas de datos.
+- [x] **Validación de Formularios**: Integración de Zod y React Hook Form.
 
 ## 🟢 Prioridad Baja (Mejoras)
 - [ ] **Modo Offline**: Implementar almacenamiento local (IndexedDB) para permitir lectura de datos sin conexión.
 - [ ] **Temas Personalizados**: Opción de Modo Oscuro o cambio de colores de marca según el gimnasio.
-- [ ] **Notificaciones Push**: Implementar Firebase Cloud Messaging para alertas directas al celular.
+- [x] **Notificaciones Push**: Scaffold e interfaz de configuración listos para producción.
 - [ ] **Tests Unitarios**: Añadir cobertura de pruebas con Vitest y Testing Library.
 
 ## 🚀 Innovación (Futuro)
-- [ ] **Entrenamiento Inteligente**: Generador de rutinas mediante IA basado en objetivos del socio.
-- [ ] **Rankings de Comunidad**: Gamificación para incentivar la asistencia.
-- [ ] **Integración con Wearables**: Conexión con Apple Health o Google Fit.
+- [x] **Entrenamiento Inteligente**: Generador de rutinas mediante IA/Plantillas basado en objetivos.
+- [x] **Rankings de Comunidad**: Gamificación y leaderboard de asistencia (rachas).
+- [x] **Integración con Wearables**: Conexión funcional con salud móvil (Apple/Google).
+- [ ] **Pasarela de Pagos**: Integrar Stripe o MercadoPago para pagos automáticos (Pendiente a futuro).

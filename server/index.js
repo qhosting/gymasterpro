@@ -8,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +41,38 @@ const authenticateToken = (req, res, next) => {
 app.use(cors());
 app.use(express.json());
 
+// --- CONFIGURACIÓN DE CARGA DE ARCHIVOS ---
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/';
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Solo se permiten imágenes'), false);
+    }
+});
+
+// Servir archivos de la carpeta uploads
+app.use('/uploads', express.static('uploads'));
+
 // --- ENDPOINTS DE AUTENTICACIÓN ---
+
+app.post('/api/upload', authenticateToken, upload.single('foto'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+    const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    res.json({ url });
+});
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
@@ -271,6 +304,41 @@ app.get('/api/attendance/today', async (req, res) => {
     }
 });
 
+// Estadísticas de asistencia (últimos 7 días)
+app.get('/api/stats/attendance', authenticateToken, async (req, res) => {
+    try {
+        const stats = [];
+        const days = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+        const today = new Date();
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(today.getDate() - i);
+            date.setHours(0, 0, 0, 0);
+            
+            const nextDate = new Date(date);
+            nextDate.setDate(date.getDate() + 1);
+
+            const count = await prisma.attendance.count({
+                where: {
+                    entrada: {
+                        gte: date,
+                        lt: nextDate
+                    }
+                }
+            });
+
+            stats.push({
+                name: days[date.getDay()],
+                visitas: count
+            });
+        }
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener estadísticas' });
+    }
+});
+
 // Registrar Transacción (Pago)
 app.post('/api/transactions', authenticateToken, async (req, res) => {
     const { memberId, monto, metodo, tipo, status } = req.body;
@@ -293,19 +361,51 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
     }
 });
 
+// Listar Transacciones
+app.get('/api/transactions', authenticateToken, async (req, res) => {
+    try {
+        const transactions = await prisma.transaction.findMany({
+            orderBy: { fecha: 'desc' }
+        });
+        res.json(transactions);
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // --- ENDPOINTS DE NUTRICIÓN Y MÉTRICAS ---
 
-// Obtener métricas de un socio
-app.get('/api/nutrition/metrics/:memberId', authenticateToken, async (req, res) => {
+// Obtener métricas y recomendación real
+app.get('/api/nutrition/data/:memberId', authenticateToken, async (req, res) => {
     const { memberId } = req.params;
     try {
-        const metrics = await prisma.bodyMetrics.findMany({
-            where: { memberId },
-            orderBy: { fecha: 'asc' }
-        });
-        res.json(metrics);
+        const [metrics, attendance] = await Promise.all([
+            prisma.bodyMetrics.findMany({ where: { memberId }, orderBy: { fecha: 'asc' } }),
+            prisma.attendance.findMany({ where: { memberId } })
+        ]);
+
+        // Mock AI Logic based on REAL data
+        let recommendation = "Continúa con tu entrenamiento constante. No olvides hidratarte.";
+        const latest = metrics[metrics.length - 1];
+        const previous = metrics[metrics.length - 2];
+
+        if (latest) {
+            if (previous && latest.peso < previous.peso) {
+                recommendation = "¡Excelente progreso! Has bajado de peso. Aumenta tu proteína para mantener músculo.";
+            } else if (latest.grasaCorporal > 25) {
+                recommendation = "Tu porcentaje de grasa es alto. Enfócate en cardio y déficit calórico leve.";
+            } else if (latest.agua < 50) {
+                recommendation = "Estás deshidratado. Intenta beber al menos 3 litros de agua al día.";
+            }
+            if (attendance.length > 15) {
+                recommendation += " Tu racha es increíble, considera un día de descanso activo.";
+            }
+        }
+
+        res.json({ metrics, recommendation });
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener métricas' });
+        res.status(500).json({ error: 'Error al obtener datos de nutrición' });
     }
 });
 
@@ -359,6 +459,137 @@ app.post('/api/nutrition/appointments', authenticateToken, async (req, res) => {
         res.status(201).json(appointment);
     } catch (error) {
         res.status(500).json({ error: 'Error al agendar cita' });
+    }
+});
+
+// --- ENDPOINTS DE ENTRENAMIENTO ---
+
+// Obtener rutinas de un socio
+app.get('/api/training/routines/:memberId', authenticateToken, async (req, res) => {
+    const { memberId } = req.params;
+    try {
+        const routines = await prisma.routine.findMany({
+            where: { memberId },
+            include: { exercises: true },
+            orderBy: { fecha: 'desc' }
+        });
+        res.json(routines);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener rutinas' });
+    }
+});
+
+// Crear rutina manual
+app.post('/api/training/routines', authenticateToken, async (req, res) => {
+    const { memberId, nombre, descripcion, instructor, objetivo, exercises } = req.body;
+    try {
+        const routine = await prisma.routine.create({
+            data: {
+                memberId,
+                nombre,
+                descripcion,
+                instructor,
+                objetivo,
+                exercises: {
+                    create: exercises
+                }
+            },
+            include: { exercises: true }
+        });
+        res.status(201).json(routine);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear rutina' });
+    }
+});
+
+// Generador Inteligente (Mock Logic)
+app.post('/api/training/generate', authenticateToken, async (req, res) => {
+    const { memberId, objetivo } = req.body;
+    
+    // Aquí iría la lógica de IA o Generador Automático
+    const templates = {
+        'Pérdida de peso': [
+            { nombre: 'Burpees', series: 4, reps: '15', descanso: '30s' },
+            { nombre: 'Salto de cuerda', series: 4, reps: '2 min', descanso: '30s' },
+            { nombre: 'Sentadillas con salto', series: 4, reps: '20', descanso: '45s' },
+            { nombre: 'Plancha (Plank)', series: 3, reps: '1 min', descanso: '60s' }
+        ],
+        'Ganancia muscular': [
+            { nombre: 'Press de Banca', series: 4, reps: '8-12', descanso: '90s' },
+            { nombre: 'Peso Muerto', series: 3, reps: '8-10', descanso: '120s' },
+            { nombre: 'Sentadilla Libre', series: 4, reps: '10-12', descanso: '90s' },
+            { nombre: 'Curl de Bíceps', series: 3, reps: '12', descanso: '60s' }
+        ]
+    };
+
+    const selectedExercises = templates[objetivo] || templates['Pérdida de peso'];
+
+    try {
+        const routine = await prisma.routine.create({
+            data: {
+                memberId,
+                nombre: `Rutina Inteligente - ${objetivo}`,
+                descripcion: 'Generada automáticamente basado en tus objetivos fit.',
+                instructor: 'AI Trainer',
+                objetivo: objetivo,
+                exercises: {
+                    create: selectedExercises
+                }
+            },
+            include: { exercises: true }
+        });
+        res.status(201).json(routine);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al generar rutina inteligente' });
+    }
+});
+
+// --- ENDPOINTS DE COMUNIDAD ---
+
+// Obtener rankings (Top 10 rachas)
+app.get('/api/community/rankings', authenticateToken, async (req, res) => {
+    try {
+        const rankings = await prisma.member.findMany({
+            include: { user: true },
+            orderBy: { rachaDias: 'desc' },
+            take: 10
+        });
+        res.json(rankings);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener rankings' });
+    }
+});
+
+// Obtener perfil completo con logros y conectividad
+app.get('/api/member/profile/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const member = await prisma.member.findUnique({
+            where: { id },
+            include: { user: true, plan: true }
+        });
+        res.json(member);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener perfil' });
+    }
+});
+
+// Actualizar conectividad y settings
+app.patch('/api/member/settings/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+    try {
+        const member = await prisma.member.update({
+            where: { id },
+            data: {
+                conectadoApple: data.conectadoApple,
+                conectadoGoogle: data.conectadoGoogle,
+                pushEnabled: data.pushEnabled
+            }
+        });
+        res.json(member);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar configuración' });
     }
 });
 

@@ -282,6 +282,32 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                 <Smartphone size={200} className="absolute -bottom-20 -right-10 text-white/5" />
               </div>
 
+              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <Bell className="text-orange-500" /> Configuración de Notificaciones Push
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[30px]">
+                    <div>
+                      <h4 className="font-bold">Recordatorios de Pago</h4>
+                      <p className="text-xs text-gray-500">Avisar 3 días antes del vencimiento.</p>
+                    </div>
+                    <div className="relative inline-block w-12 h-6 rounded-full bg-orange-500 transition-colors cursor-pointer">
+                      <div className="absolute right-1 top-1 w-4 h-4 rounded-full bg-white transition-transform"></div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[30px]">
+                    <div>
+                      <h4 className="font-bold">Anuncios de Comunidad</h4>
+                      <p className="text-xs text-gray-500">Nuevas rutinas, retos y eventos del gym.</p>
+                    </div>
+                    <div className="relative inline-block w-12 h-6 rounded-full bg-gray-300 transition-colors cursor-pointer">
+                      <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-6">
                   <div className="flex items-center gap-4">

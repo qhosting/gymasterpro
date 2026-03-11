@@ -32,7 +32,7 @@ import {
   Area
 } from 'recharts';
 import { Member, BodyMetrics, NutritionAppointment, User, UserRole } from '../types';
-import { fetchMemberMetrics, createMetrics, fetchAppointments, createAppointment } from '../services/apiService';
+import { fetchFullNutritionData, createMetrics, fetchAppointments, createAppointment } from '../services/apiService';
 
 interface NutritionViewProps {
   members: Member[];
@@ -47,6 +47,7 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
   const [isAddingMetrics, setIsAddingMetrics] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverRecommendation, setServerRecommendation] = useState("Cargando recomendación...");
 
   // Forms State
   const [newMetrics, setNewMetrics] = useState({
@@ -70,12 +71,13 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
 
   const loadMemberData = async (memberId: string) => {
     try {
-      const [metricsData, appointmentsData] = await Promise.all([
-        fetchMemberMetrics(memberId),
+      const [{ metrics: metricsData, recommendation }, appointmentsData] = await Promise.all([
+        fetchFullNutritionData(memberId),
         fetchAppointments(memberId)
       ]);
       setMetrics(metricsData);
       setAppointments(appointmentsData);
+      setServerRecommendation(recommendation);
     } catch (error) {
       console.error("Error loading nutrition data:", error);
     }
@@ -196,8 +198,8 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Metrics Cards */}
-        <div className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="lg:col-span-8 space-y-8 overflow-hidden">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-blue-50 text-blue-500 rounded-xl"><Scale size={20} /></div>
@@ -238,17 +240,17 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
           </div>
 
           {/* Charts */}
-          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+          <div className="bg-white p-6 sm:p-8 rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
                 <History className="text-orange-500" /> Historial Evolutivo
               </h3>
-              <div className="flex gap-2">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-blue-500">
+              <div className="flex flex-wrap gap-2">
+                <span className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase text-blue-500">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div> Peso
                 </span>
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-orange-500">
-                  <div className="w-2 h-2 rounded-full bg-orange-500"></div> Masa Muscular
+                <span className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase text-orange-500">
+                  <div className="w-2 h-2 rounded-full bg-orange-500"></div> Masa
                 </span>
               </div>
             </div>
@@ -339,7 +341,7 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
             </h3>
             <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100">
               <p className="text-xs font-bold text-emerald-800 leading-relaxed italic">
-                "Basado en tu racha de asistencia y tu ligero aumento en masa muscular, te recomendamos aumentar tu ingesta de proteína en 15g diarios y mantener el consumo de agua por encima del 60%."
+                "{serverRecommendation}"
               </p>
               <div className="mt-4 flex items-center gap-2">
                 <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-[10px] text-white font-black">AI</div>
