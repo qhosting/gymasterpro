@@ -12,7 +12,6 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 
 ## 🟡 Prioridad Media (Funcional)
 - [ ] **Carga de Archivos**: Implementar subida real de imágenes a un storage (S3/Cloudinary) para las fotos de perfil.
-- [ ] **Pasarela de Pagos**: Integrar Stripe, MercadoPago o PayPal para pagos de membresías en línea.
 - [ ] **Generación de QR**: Crear generador de códigos QR únicos por miembro dentro de su perfil.
 - [ ] **Reportes en PDF**: Exportación de estados financieros y recibos de pago.
 - [ ] **Validación de Formularios**: Agregar bibliotecas como Zod o Yup para validar entradas de datos.

@@ -12,8 +12,10 @@ import {
   Phone, 
   Mail,
   ChevronRight,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Member, User as UserType } from '../types';
 
 interface MemberProfileProps {
@@ -23,6 +25,22 @@ interface MemberProfileProps {
 
 const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser, members }) => {
   const memberData = members.find(m => m.id === currentUser.id);
+  const [qrUrl, setQrUrl] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (memberData?.id) {
+      QRCode.toDataURL(memberData.id, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#111827', // gray-900
+          light: '#ffffff',
+        },
+      })
+      .then(url => setQrUrl(url))
+      .catch(err => console.error(err));
+    }
+  }, [memberData?.id]);
 
   if (!memberData) {
     return (
@@ -79,12 +97,30 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser, members }) =
 
           {/* QR Access Card */}
           <div className="bg-gray-900 p-8 rounded-[40px] text-white shadow-2xl flex flex-col items-center space-y-4 group hover:scale-105 transition-transform duration-500">
-            <div className="bg-white p-4 rounded-3xl shadow-inner">
-              <QrCode size={120} className="text-gray-900" />
+            <div className="bg-white p-2 rounded-3xl shadow-inner overflow-hidden flex items-center justify-center">
+              {qrUrl ? (
+                <img src={qrUrl} alt="Acceso QR" className="w-[120px] h-[120px] object-contain" />
+              ) : (
+                <div className="w-[120px] h-[120px] flex items-center justify-center">
+                  <QrCode size={40} className="text-gray-200 animate-pulse" />
+                </div>
+              )}
             </div>
             <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Pase Digital</p>
-              <p className="text-xs font-bold text-orange-500">Escanea para entrar</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Pase Digital</p>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <p className="text-xs font-bold text-orange-500">Escanea para entrar</p>
+                {qrUrl && (
+                  <a 
+                    href={qrUrl} 
+                    download={`QR-GymMaster-${memberData.id}.png`}
+                    className="p-1 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
+                    title="Descargar QR"
+                  >
+                    <Download size={14} />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
