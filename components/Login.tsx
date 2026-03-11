@@ -96,8 +96,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          <p className="text-center mt-8 text-[11px] text-gray-500 font-medium">
-            ¿Olvidaste tu acceso? <span className="text-orange-500 cursor-pointer hover:underline">Contactar soporte</span>
+          <p className="text-center mt-8 text-[11px] text-gray-500 font-medium tracking-wide">
+            ¿Olvidaste tu acceso?{' '}
+            <a 
+              href="https://wa.me/524424000742" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-orange-500 cursor-pointer hover:underline font-black"
+            >
+              Contactar soporte
+            </a>
           </p>
         </div>
         
