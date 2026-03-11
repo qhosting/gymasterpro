@@ -59,7 +59,7 @@ app.get('/api/plans', async (req, res) => {
 app.use(express.static(path.join(__dirname, '../dist')));
 
 // SPA Catch-all: Send all other requests to index.html
-app.get('/:slug*', (req, res) => {
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
