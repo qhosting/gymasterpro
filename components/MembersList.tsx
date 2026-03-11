@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Member, MembershipStatus, UserRole, NutritionAppointment } from '../types';
 import { MOCK_APPOINTMENTS } from '../constants';
+import { createMember, updateMember, deleteMember } from '../services/apiService';
 
 interface MembersListProps {
   members: Member[];
@@ -98,27 +99,35 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
     setIsCameraActive(false);
   };
 
-  const handleAddMember = (e: React.FormEvent) => {
+  const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    const memberToAdd: Member = {
-      id: `m${Date.now()}`,
-      nombre: newMember.nombre,
-      email: newMember.email,
-      telefono: newMember.telefono,
-      role: UserRole.MIEMBRO,
-      fechaRegistro: new Date().toISOString().split('T')[0],
-      fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      planId: newMember.plan,
-      status: MembershipStatus.ACTIVO,
-      deuda: 0,
-      foto: capturedImage || `https://picsum.photos/seed/${newMember.nombre}/100/100`,
-      objetivo: newMember.objetivo,
-      contactoEmergencia: newMember.contactoEmergencia,
-      telefonoEmergencia: newMember.telefonoEmergencia
-    };
-    setMembers([memberToAdd, ...members]);
-    setIsModalOpen(false);
-    resetForm();
+    try {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+
+      const memberData = {
+        nombre: newMember.nombre,
+        email: newMember.email,
+        telefono: newMember.telefono,
+        planId: newMember.plan,
+        fechaVencimiento: expirationDate.toISOString(),
+        role: UserRole.MIEMBRO,
+        status: MembershipStatus.ACTIVO,
+        deuda: 0,
+        foto: capturedImage || `https://picsum.photos/seed/${newMember.nombre}/100/100`,
+        objetivo: newMember.objetivo,
+        contactoEmergencia: newMember.contactoEmergencia,
+        telefonoEmergencia: newMember.telefonoEmergencia
+      };
+
+      const savedMember = await createMember(memberData);
+      setMembers([savedMember, ...members]);
+      setIsModalOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error adding member:", error);
+      alert("Error al guardar el socio en la base de datos.");
+    }
   };
 
   const resetForm = () => {
@@ -137,15 +146,37 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
     ? appointments.filter(a => a.memberId === selectedMember.id)
     : [];
 
-  const handleRenovacionExpress = (id: string) => {
-    setMembers(members.map(m => {
-      if (m.id === id) {
-        const nextMonth = new Date(m.fechaVencimiento);
-        nextMonth.setDate(nextMonth.getDate() + 30);
-        return { ...m, status: MembershipStatus.ACTIVO, fechaVencimiento: nextMonth.toISOString().split('T')[0], deuda: 0 };
-      }
-      return m;
-    }));
+  const handleRenovacionExpress = async (id: string) => {
+    const member = members.find(m => m.id === id);
+    if (!member) return;
+
+    try {
+      const nextMonth = new Date(member.fechaVencimiento);
+      nextMonth.setDate(nextMonth.getDate() + 30);
+
+      await updateMember(id, {
+        status: MembershipStatus.ACTIVO,
+        fechaVencimiento: nextMonth.toISOString(),
+        deuda: 0
+      });
+
+      setMembers(members.map(m => 
+        m.id === id ? { ...m, status: MembershipStatus.ACTIVO, fechaVencimiento: nextMonth.toISOString().split('T')[0], deuda: 0 } : m
+      ));
+    } catch (error) {
+      console.error("Error renewing member:", error);
+    }
+  };
+
+  const handleDeleteMember = async (id: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este socio?")) return;
+    try {
+      await deleteMember(id);
+      setMembers(members.filter(m => m.id !== id));
+      setSelectedMember(null);
+    } catch (error) {
+      console.error("Error deleting member:", error);
+    }
   };
 
   const exportToCSV = () => {
@@ -509,7 +540,10 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
               <button className="flex-1 py-5 bg-orange-500 text-white rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-600 shadow-xl shadow-orange-500/30 transition-all active:scale-95">
                 <Edit2 size={18}/> Editar Socio
               </button>
-              <button className="p-5 bg-white border border-gray-200 rounded-3xl text-red-500 hover:bg-red-50 transition-all shadow-sm">
+              <button 
+                onClick={() => handleDeleteMember(selectedMember.id)}
+                className="p-5 bg-white border border-gray-200 rounded-3xl text-red-500 hover:bg-red-50 transition-all shadow-sm"
+              >
                 <Trash2 size={24}/>
               </button>
             </div>

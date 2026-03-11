@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import jsQR from 'jsqr';
 import { Member, MembershipStatus } from '../types';
-import { identifyMemberByFace } from '../services/geminiService';
+import { recordCheckIn, recordCheckOut, fetchTodayAttendance } from '../services/apiService';
 
 interface DetailedAttendanceRecord {
   id: string;
@@ -53,15 +53,18 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
   const CAPACIDAD_MAXIMA = 50;
 
   useEffect(() => {
-    if (activeAttendance.length === 0 && attendanceHistory.length === 0) {
-      setActiveAttendance([
-        { id: '1', memberId: 'm1', entrada: new Date(Date.now() - 45 * 60000).toISOString() },
-        { id: '2', memberId: 'm2', entrada: new Date(Date.now() - 15 * 60000).toISOString() },
-      ]);
-      setAttendanceHistory([
-        { id: '3', memberId: 'm3', entrada: new Date(Date.now() - 120 * 60000).toISOString(), salida: new Date(Date.now() - 60 * 60000).toISOString() }
-      ]);
-    }
+    const loadAttendance = async () => {
+      try {
+        const data = await fetchTodayAttendance();
+        const active = data.filter((r: any) => !r.salida);
+        const history = data.filter((r: any) => r.salida);
+        setActiveAttendance(active.map((r: any) => ({ ...r, entrada: r.entrada })));
+        setAttendanceHistory(history.map((r: any) => ({ ...r, entrada: r.entrada, salida: r.salida })));
+      } catch (error) {
+        console.error("Error loading attendance:", error);
+      }
+    };
+    loadAttendance();
   }, []);
 
   useEffect(() => {
@@ -200,8 +203,11 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
         setKioskStatus('success');
       }
 
-      if (!activeAttendance.some(a => a.memberId === memberId)) {
-        setActiveAttendance([{ id: `at-${Date.now()}`, memberId, entrada: new Date().toISOString() }, ...activeAttendance]);
+      const activeRecord = activeAttendance.find(a => a.memberId === memberId);
+      if (!activeRecord) {
+        recordCheckIn(memberId).then(savedRecord => {
+          setActiveAttendance([savedRecord, ...activeAttendance]);
+        });
       } else {
         handleCheckOut(memberId);
       }
@@ -215,23 +221,30 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
       }, 4000);
 
     } else {
-      if (activeAttendance.some(a => a.memberId === memberId)) {
+      const activeRecord = activeAttendance.find(a => a.memberId === memberId);
+      if (activeRecord) {
         handleCheckOut(memberId);
         return;
       }
       setLastAlert({ member, types: alerts });
-      setActiveAttendance([{ id: `at-${Date.now()}`, memberId, entrada: new Date().toISOString() }, ...activeAttendance]);
+      recordCheckIn(memberId).then(savedRecord => {
+        setActiveAttendance([savedRecord, ...activeAttendance]);
+      });
       setSearchTerm('');
       setTimeout(() => setLastAlert(null), 5000);
     }
   };
 
-  const handleCheckOut = (memberId: string) => {
+  const handleCheckOut = async (memberId: string) => {
     const record = activeAttendance.find(a => a.memberId === memberId);
     if (record) {
-      const completedRecord = { ...record, salida: new Date().toISOString() };
-      setAttendanceHistory([completedRecord, ...attendanceHistory]);
-      setActiveAttendance(prev => prev.filter(a => a.memberId !== memberId));
+      try {
+        const completedRecord = await recordCheckOut(record.id);
+        setAttendanceHistory([completedRecord, ...attendanceHistory]);
+        setActiveAttendance(prev => prev.filter(a => a.memberId !== memberId));
+      } catch (error) {
+        console.error("Error during checkout:", error);
+      }
     }
   };
 

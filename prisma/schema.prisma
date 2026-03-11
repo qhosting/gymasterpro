@@ -48,10 +48,11 @@ model Plan {
 }
 
 model Attendance {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   memberId  String
-  member    Member   @relation(fields: [memberId], references: [id])
-  entrada   DateTime @default(now())
+  member    Member    @relation(fields: [memberId], references: [id])
+  entrada   DateTime  @default(now())
+  salida    DateTime?
 }
 
 model Transaction {

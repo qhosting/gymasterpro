@@ -8,12 +8,14 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
 import { GYM_PLANS, MOCK_TRANSACTIONS, MOCK_APPOINTMENTS } from '../constants';
+import { recordTransaction } from '../services/apiService';
 
 interface FinanceViewProps {
   members: Member[];
+  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
 }
 
-const FinanceView: React.FC<FinanceViewProps> = ({ members }) => {
+const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'plans'>('overview');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
@@ -44,40 +46,43 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members }) => {
     { name: 'May', income: totalRecaudado },
   ];
 
-  const handleProcessPayment = (e: React.FormEvent) => {
+  const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newTx: Transaction = {
-      id: `t${Date.now()}`,
-      memberId: paymentData.memberId,
-      monto: paymentData.amount,
-      fecha: new Date().toISOString().split('T')[0],
-      metodo: paymentData.method,
-      tipo: paymentData.type,
-      status: 'Completado'
-    };
-    setTransactions([newTx, ...transactions]);
-    
-    // If nutrition appointment is scheduled, we would typically save it to a global state or API
-    if (paymentData.scheduleNutrition && paymentData.nutritionDate && paymentData.nutritionTime) {
-      console.log('Cita con nutriólogo agendada:', {
+    try {
+      const transactionData = {
         memberId: paymentData.memberId,
-        fecha: paymentData.nutritionDate,
-        hora: paymentData.nutritionTime
-      });
-      // In a real app, we'd call a service or update global state here
-    }
+        monto: paymentData.amount,
+        metodo: paymentData.method,
+        tipo: paymentData.type,
+        status: 'Completado'
+      };
 
-    setIsPaymentModalOpen(false);
-    // Reset form
-    setPaymentData({ 
-      memberId: '', 
-      amount: 0, 
-      method: 'Efectivo', 
-      type: 'Mensualidad',
-      scheduleNutrition: false,
-      nutritionDate: '',
-      nutritionTime: ''
-    });
+      const savedTx = await recordTransaction(transactionData);
+      setTransactions([savedTx, ...transactions]);
+      
+      // Update member debt locally if it was a membership payment
+      if (paymentData.type === 'Mensualidad' || paymentData.type === 'Otro') {
+        setMembers(members.map(m => 
+          m.id === paymentData.memberId 
+            ? { ...m, deuda: Math.max(0, m.deuda - paymentData.amount) } 
+            : m
+        ));
+      }
+
+      setIsPaymentModalOpen(false);
+      setPaymentData({ 
+        memberId: '', 
+        amount: 0, 
+        method: 'Efectivo', 
+        type: 'Mensualidad',
+        scheduleNutrition: false,
+        nutritionDate: '',
+        nutritionTime: ''
+      });
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      alert("Error al procesar el pago.");
+    }
   };
 
   const getMemberName = (id: string) => members.find(m => m.id === id)?.nombre || 'Socio Externo';
