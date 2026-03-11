@@ -25,6 +25,7 @@ import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
 import MemberProfile from './components/MemberProfile';
+import { fetchMembers } from './services/apiService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User>({
@@ -83,6 +84,20 @@ const App: React.FC = () => {
     setActiveTab('notifications');
     setIsNotificationOpen(false);
   };
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await fetchMembers();
+        if (data && data.length > 0) {
+          setMembers(data);
+        }
+      } catch (error) {
+        console.error("Error loading data from DB:", error);
+      }
+    };
+    loadData();
+  }, []);
 
   // Filter menu items by role
   const menuItems = [
