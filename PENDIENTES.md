@@ -14,7 +14,7 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 ## 🟡 Prioridad Media (Funcional)
 - [x] **Carga de Archivos**: Implementar subida de imágenes localmente con Multer.
 - [x] **Generación de QR**: Generador de códigos QR únicos por miembro integrado en el perfil.
-- [ ] **Reportes en PDF**: Exportación de estados financieros y recibos de pago.
+- [x] **Reportes en PDF**: Exportación de estados financieros y recibos de pago con diseño premium.
 - [x] **Validación de Formularios**: Integración de Zod y React Hook Form.
 
 ## 🟢 Prioridad Baja (Mejoras)
