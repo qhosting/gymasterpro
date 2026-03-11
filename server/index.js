@@ -6,6 +6,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,13 +20,87 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+const JWT_SECRET = process.env.JWT_SECRET || 'gym-master-pro-secret-key-2024';
+
+// Middleware para verificar JWT
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: 'Acceso denegado' });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Token inválido' });
+        req.user = user;
+        next();
+    });
+};
+
 app.use(cors());
 app.use(express.json());
+
+// --- ENDPOINTS DE AUTENTICACIÓN ---
+
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { member: true }
+        });
+
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const validPassword = await bcrypt.compare(password, user.password || '');
+        if (!validPassword) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                nombre: user.nombre,
+                email: user.email,
+                role: user.role,
+                foto: user.foto,
+                memberId: user.member?.id
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
+});
+
+app.get('/api/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            include: { member: true }
+        });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json({
+            id: user.id,
+            nombre: user.nombre,
+            email: user.email,
+            role: user.role,
+            foto: user.foto,
+            memberId: user.member?.id
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener datos del usuario' });
+    }
+});
 
 // --- ENDPOINTS DE MIEMBROS ---
 
 // Listar miembros
-app.get('/api/members', async (req, res) => {
+app.get('/api/members', authenticateToken, async (req, res) => {
     try {
         const members = await prisma.member.findMany({
             include: { user: true, plan: true }
@@ -42,7 +118,7 @@ app.get('/api/members', async (req, res) => {
 });
 
 // Crear miembro
-app.post('/api/members', async (req, res) => {
+app.post('/api/members', authenticateToken, async (req, res) => {
     const data = req.body;
     try {
         const result = await prisma.$transaction(async (tx) => {
@@ -78,7 +154,7 @@ app.post('/api/members', async (req, res) => {
 });
 
 // Actualizar miembro
-app.put('/api/members/:id', async (req, res) => {
+app.put('/api/members/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const data = req.body;
     try {
@@ -115,7 +191,7 @@ app.put('/api/members/:id', async (req, res) => {
 });
 
 // Eliminar miembro
-app.delete('/api/members/:id', async (req, res) => {
+app.delete('/api/members/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         await prisma.member.delete({ where: { id } });
@@ -141,7 +217,7 @@ app.get('/api/plans', async (req, res) => {
 });
 
 // Registrar Entrada
-app.post('/api/attendance', async (req, res) => {
+app.post('/api/attendance', authenticateToken, async (req, res) => {
     const { memberId } = req.body;
     try {
         const attendance = await prisma.attendance.create({
@@ -162,7 +238,7 @@ app.post('/api/attendance', async (req, res) => {
 });
 
 // Registrar Salida
-app.put('/api/attendance/:id', async (req, res) => {
+app.put('/api/attendance/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         const attendance = await prisma.attendance.update({
@@ -196,7 +272,7 @@ app.get('/api/attendance/today', async (req, res) => {
 });
 
 // Registrar Transacción (Pago)
-app.post('/api/transactions', async (req, res) => {
+app.post('/api/transactions', authenticateToken, async (req, res) => {
     const { memberId, monto, metodo, tipo, status } = req.body;
     try {
         const transaction = await prisma.transaction.create({

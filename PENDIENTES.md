@@ -3,11 +3,11 @@
 Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 
 ## 🚧 En Progreso
-- [ ] **Migración a Base de Datos**: Integración con PostgreSQL (`gympro-old-db`) usando Prisma y Node.js.
+- [x] **Migración a Base de Datos**: Integración con PostgreSQL (`gympro-old-db`) usando Prisma y Node.js.
 
 ## 🔴 Prioridad Alta (Crítico)
-- [ ] **Backend Real**: Implementar los endpoints de la API para conectar el frontend con Prisma.
-- [ ] **Autenticación real**: Implementar flujo de Login real con seguridad JWT y recuperación de contraseñas.
+- [x] **Backend Real**: Implementar los endpoints de la API para conectar el frontend con Prisma.
+- [x] **Autenticación real**: Implementar flujo de Login real con seguridad JWT y recuperación de contraseñas.
 - [ ] **Seguridad de API Keys**: Mover las llamadas a Gemini y WAHA a un servidor backend para proteger las credenciales.
 
 ## 🟡 Prioridad Media (Funcional)

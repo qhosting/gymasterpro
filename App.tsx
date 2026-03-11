@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Dumbbell,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
@@ -25,16 +26,13 @@ import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
 import MemberProfile from './components/MemberProfile';
-import { fetchMembers } from './services/apiService';
+import Login from './components/Login';
+import { fetchMembers, getMe, logout } from './services/apiService';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User>({
-    id: 'admin-1',
-    nombre: 'Super Admin',
-    email: 'admin@gymmaster.com',
-    role: UserRole.SUPER_ADMIN,
-    foto: 'https://picsum.photos/seed/admin/100/100'
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
@@ -86,18 +84,37 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await fetchMembers();
-        if (data && data.length > 0) {
-          setMembers(data);
+    const checkAuth = async () => {
+      const token = localStorage.getItem('gym-token');
+      if (token) {
+        try {
+          const user = await getMe();
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } catch (error) {
+          logout();
         }
-      } catch (error) {
-        console.error("Error loading data from DB:", error);
       }
+      setIsLoadingAuth(false);
     };
-    loadData();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadData = async () => {
+        try {
+          const data = await fetchMembers();
+          if (data && data.length > 0) {
+            setMembers(data);
+          }
+        } catch (error) {
+          console.error("Error loading data from DB:", error);
+        }
+      };
+      loadData();
+    }
+  }, [isAuthenticated]);
 
   // Filter menu items by role
   const menuItems = [
@@ -109,9 +126,10 @@ const App: React.FC = () => {
     { id: 'finance', label: 'Pagos / Planes', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: Bell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MIEMBRO, UserRole.INSTRUCTOR] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: [UserRole.SUPER_ADMIN] },
-  ].filter(item => item.roles.includes(currentUser.role));
+  ].filter(item => item.roles.includes(currentUser?.role || UserRole.MIEMBRO));
 
   const renderContent = () => {
+    if (!currentUser) return null;
     switch (activeTab) {
       case 'dashboard': return <Dashboard members={members} currentUser={currentUser} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
@@ -124,6 +142,27 @@ const App: React.FC = () => {
       default: return <Dashboard members={members} currentUser={currentUser} />;
     }
   };
+
+  const handleLogout = () => {
+    logout();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  if (isLoadingAuth) {
+    return (
+      <div className="h-screen bg-gray-950 flex items-center justify-center">
+        <Loader2 className="text-orange-500 animate-spin" size={48} />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={(user) => {
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+    }} />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -157,10 +196,10 @@ const App: React.FC = () => {
              {isSidebarOpen && <p className="text-[10px] text-gray-500 mb-2 px-2 uppercase font-black tracking-widest">Simular Perfil</p>}
              <select 
                className="bg-gray-800 text-white text-[11px] w-full p-2.5 rounded-xl border-none outline-none font-bold cursor-pointer hover:bg-gray-700 transition-colors"
-               value={currentUser.role}
+               value={currentUser?.role || UserRole.MIEMBRO}
                onChange={(e) => {
                  const newRole = e.target.value as UserRole;
-                 setCurrentUser({...currentUser, role: newRole});
+                 if (currentUser) setCurrentUser({...currentUser, role: newRole});
                  // Reset tab if current not allowed for new role
                  if (newRole === UserRole.MIEMBRO) {
                    setActiveTab('profile');
@@ -184,11 +223,11 @@ const App: React.FC = () => {
             </div>
             {isSidebarOpen && (
               <div className="flex-1 overflow-hidden">
-                <p className="font-bold text-[13px] truncate text-white">{currentUser.nombre}</p>
-                <p className="text-[10px] text-orange-500 font-black uppercase tracking-tighter truncate">{currentUser.role.replace('_', ' ')}</p>
+                <p className="font-bold text-[13px] truncate text-white">{currentUser?.nombre}</p>
+                <p className="text-[10px] text-orange-500 font-black uppercase tracking-tighter truncate">{currentUser?.role.replace('_', ' ')}</p>
               </div>
             )}
-            {isSidebarOpen && <LogOut size={18} className="text-gray-500 group-hover:text-red-400 transition-colors" />}
+            {isSidebarOpen && <LogOut size={18} onClick={handleLogout} className="text-gray-500 group-hover:text-red-400 transition-colors" />}
           </div>
         </div>
       </aside>
@@ -239,9 +278,12 @@ const App: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-black text-gray-900 leading-none">Cerrar Sesión</p>
-                <p className="text-[10px] text-gray-400 font-bold mt-1">ID: {currentUser.id}</p>
+                <p className="text-[10px] text-gray-400 font-bold mt-1">ID: {currentUser?.id}</p>
               </div>
-              <button className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-black shadow-lg shadow-gray-900/10 active:scale-95 transition-all">
+              <button 
+                onClick={handleLogout}
+                className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-black shadow-lg shadow-gray-900/10 active:scale-95 transition-all"
+              >
                 <LogOut size={20} />
               </button>
             </div>

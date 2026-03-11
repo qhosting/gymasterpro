@@ -3,8 +3,42 @@ const API_URL = typeof window !== 'undefined' && window.location.hostname === 'l
     ? 'http://localhost:3001/api' 
     : '/api';
 
+const getHeaders = () => {
+    const token = localStorage.getItem('gym-token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+};
+
+export const login = async (credentials: any) => {
+    const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+    });
+    if (!response.ok) throw new Error('Credenciales inválidas');
+    const data = await response.json();
+    localStorage.setItem('gym-token', data.token);
+    return data;
+};
+
+export const getMe = async () => {
+    const response = await fetch(`${API_URL}/me`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Session expired');
+    return await response.json();
+};
+
+export const logout = () => {
+    localStorage.removeItem('gym-token');
+};
+
 export const fetchMembers = async () => {
-    const response = await fetch(`${API_URL}/members`);
+    const response = await fetch(`${API_URL}/members`, {
+        headers: getHeaders()
+    });
     if (!response.ok) throw new Error('Failed to fetch members');
     return await response.json();
 };
@@ -12,7 +46,7 @@ export const fetchMembers = async () => {
 export const createMember = async (memberData: any) => {
     const response = await fetch(`${API_URL}/members`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(memberData)
     });
     if (!response.ok) throw new Error('Failed to create member');
@@ -22,7 +56,7 @@ export const createMember = async (memberData: any) => {
 export const updateMember = async (id: string, memberData: any) => {
     const response = await fetch(`${API_URL}/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(memberData)
     });
     if (!response.ok) throw new Error('Failed to update member');
@@ -31,14 +65,17 @@ export const updateMember = async (id: string, memberData: any) => {
 
 export const deleteMember = async (id: string) => {
     const response = await fetch(`${API_URL}/members/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to delete member');
     return await response.json();
 };
 
 export const fetchPlans = async () => {
-    const response = await fetch(`${API_URL}/plans`);
+    const response = await fetch(`${API_URL}/plans`, {
+        headers: getHeaders()
+    });
     if (!response.ok) throw new Error('Failed to fetch plans');
     return await response.json();
 };
@@ -46,7 +83,7 @@ export const fetchPlans = async () => {
 export const recordCheckIn = async (memberId: string) => {
     const response = await fetch(`${API_URL}/attendance`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ memberId })
     });
     if (!response.ok) throw new Error('Failed to record check-in');
@@ -55,14 +92,17 @@ export const recordCheckIn = async (memberId: string) => {
 
 export const recordCheckOut = async (attendanceId: string) => {
     const response = await fetch(`${API_URL}/attendance/${attendanceId}`, {
-        method: 'PUT'
+        method: 'PUT',
+        headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to record check-out');
     return await response.json();
 };
 
 export const fetchTodayAttendance = async () => {
-    const response = await fetch(`${API_URL}/attendance/today`);
+    const response = await fetch(`${API_URL}/attendance/today`, {
+        headers: getHeaders()
+    });
     if (!response.ok) throw new Error('Failed to fetch attendance');
     return await response.json();
 };
@@ -70,7 +110,7 @@ export const fetchTodayAttendance = async () => {
 export const recordTransaction = async (transactionData: any) => {
     const response = await fetch(`${API_URL}/transactions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(transactionData)
     });
     if (!response.ok) throw new Error('Failed to record transaction');

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -48,13 +49,15 @@ async function main() {
     console.log('Plans seeded');
 
     // 2. Create Admin User
+    const hashedAdminPassword = await bcrypt.hash('admin123', 10);
     const adminUser = await prisma.user.upsert({
         where: { email: 'admin@gymmaster.com' },
-        update: {},
+        update: { password: hashedAdminPassword },
         create: {
             id: 'admin-1',
             nombre: 'Super Admin',
             email: 'admin@gymmaster.com',
+            password: hashedAdminPassword,
             role: 'SUPER_ADMIN',
             foto: 'https://picsum.photos/seed/admin/100/100'
         }
@@ -62,11 +65,13 @@ async function main() {
     console.log('Admin user seeded');
 
     // 3. Create Sample Members
+    const hashedMemberPassword = await bcrypt.hash('socio123', 10);
     const membersData = [
         {
             id: 'm1',
             nombre: 'Juan Pérez',
             email: 'juan@example.com',
+            password: hashedMemberPassword,
             role: 'MIEMBRO',
             foto: 'https://picsum.photos/seed/juan/100/100',
             memberInfo: {
@@ -84,6 +89,7 @@ async function main() {
             id: 'm2',
             nombre: 'Maria García',
             email: 'maria@example.com',
+            password: hashedMemberPassword,
             role: 'MIEMBRO',
             foto: 'https://picsum.photos/seed/maria/100/100',
             memberInfo: {

@@ -7,34 +7,35 @@ datasource db {
 }
 
 model User {
-  id      String  @id @default(uuid())
-  nombre  String
-  email   String  @unique
-  role    Role    @default(MIEMBRO)
-  foto    String?
-  member  Member?
+  id       String  @id @default(uuid())
+  nombre   String
+  email    String  @unique
+  role     Role    @default(MIEMBRO)
+  foto     String?
+  password String?
+  member   Member?
 }
 
 model Member {
-  id                  String           @id
-  user                User             @relation(fields: [id], references: [id])
-  fechaRegistro       DateTime         @default(now())
-  fechaVencimiento    DateTime
-  planId              String
-  plan                Plan             @relation(fields: [planId], references: [id])
-  status              MembershipStatus @default(PENDIENTE)
-  deuda               Float            @default(0)
-  fechaNacimiento     DateTime?
-  contactoEmergencia  String?
-  telefonoEmergencia  String?
-  objetivo            String?
-  notas               String?
-  ultimaAsistencia    DateTime?
-  rachaDias           Int              @default(0)
-  attendance          Attendance[]
-  transactions        Transaction[]
-  metrics             BodyMetrics[]
-  appointments        Appointment[]
+  id                 String           @id
+  fechaRegistro      DateTime         @default(now())
+  fechaVencimiento   DateTime
+  planId             String
+  status             MembershipStatus @default(PENDIENTE)
+  deuda              Float            @default(0)
+  fechaNacimiento    DateTime?
+  contactoEmergencia String?
+  telefonoEmergencia String?
+  objetivo           String?
+  notas              String?
+  ultimaAsistencia   DateTime?
+  rachaDias          Int              @default(0)
+  appointments       Appointment[]
+  attendance         Attendance[]
+  metrics            BodyMetrics[]
+  user               User             @relation(fields: [id], references: [id])
+  plan               Plan             @relation(fields: [planId], references: [id])
+  transactions       Transaction[]
 }
 
 model Plan {
@@ -48,44 +49,44 @@ model Plan {
 }
 
 model Attendance {
-  id        String    @id @default(uuid())
-  memberId  String
-  member    Member    @relation(fields: [memberId], references: [id])
-  entrada   DateTime  @default(now())
-  salida    DateTime?
+  id       String    @id @default(uuid())
+  memberId String
+  entrada  DateTime  @default(now())
+  salida   DateTime?
+  member   Member    @relation(fields: [memberId], references: [id])
 }
 
 model Transaction {
-  id        String   @id @default(uuid())
-  memberId  String
-  member    Member   @relation(fields: [memberId], references: [id])
-  monto     Float
-  fecha     DateTime @default(now())
-  metodo    String
-  tipo      String
-  status    String
+  id       String   @id @default(uuid())
+  memberId String
+  monto    Float
+  fecha    DateTime @default(now())
+  metodo   String
+  tipo     String
+  status   String
+  member   Member   @relation(fields: [memberId], references: [id])
 }
 
 model BodyMetrics {
   id            String   @id @default(uuid())
   memberId      String
-  member        Member   @relation(fields: [memberId], references: [id])
   fecha         DateTime @default(now())
   peso          Float
   masaMuscular  Float
   grasaCorporal Float
   agua          Float
   imc           Float
+  member        Member   @relation(fields: [memberId], references: [id])
 }
 
 model Appointment {
-  id        String   @id @default(uuid())
-  memberId  String
-  member    Member   @relation(fields: [memberId], references: [id])
-  fecha     DateTime
-  hora      String
-  status    String
-  notas     String?
+  id       String   @id @default(uuid())
+  memberId String
+  fecha    DateTime
+  hora     String
+  status   String
+  notas    String?
+  member   Member   @relation(fields: [memberId], references: [id])
 }
 
 enum Role {
