@@ -116,3 +116,40 @@ export const recordTransaction = async (transactionData: any) => {
     if (!response.ok) throw new Error('Failed to record transaction');
     return await response.json();
 };
+
+export const fetchMemberMetrics = async (memberId: string) => {
+    const response = await fetch(`${API_URL}/nutrition/metrics/${memberId}`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch metrics');
+    return await response.json();
+};
+
+export const createMetrics = async (metricsData: any) => {
+    const response = await fetch(`${API_URL}/nutrition/metrics`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(metricsData)
+    });
+    if (!response.ok) throw new Error('Failed to create metrics');
+    return await response.json();
+};
+
+export const fetchAppointments = async (memberId?: string) => {
+    const url = memberId ? `${API_URL}/nutrition/appointments?memberId=${memberId}` : `${API_URL}/nutrition/appointments`;
+    const response = await fetch(url, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch appointments');
+    return await response.json();
+};
+
+export const createAppointment = async (appointmentData: any) => {
+    const response = await fetch(`${API_URL}/nutrition/appointments`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(appointmentData)
+    });
+    if (!response.ok) throw new Error('Failed to create appointment');
+    return await response.json();
+};

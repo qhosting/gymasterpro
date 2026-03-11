@@ -293,6 +293,75 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
     }
 });
 
+// --- ENDPOINTS DE NUTRICIÓN Y MÉTRICAS ---
+
+// Obtener métricas de un socio
+app.get('/api/nutrition/metrics/:memberId', authenticateToken, async (req, res) => {
+    const { memberId } = req.params;
+    try {
+        const metrics = await prisma.bodyMetrics.findMany({
+            where: { memberId },
+            orderBy: { fecha: 'asc' }
+        });
+        res.json(metrics);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener métricas' });
+    }
+});
+
+// Registrar nuevas métricas
+app.post('/api/nutrition/metrics', authenticateToken, async (req, res) => {
+    const data = req.body;
+    try {
+        const metrics = await prisma.bodyMetrics.create({
+            data: {
+                memberId: data.memberId,
+                peso: parseFloat(data.peso),
+                masaMuscular: parseFloat(data.masaMuscular),
+                grasaCorporal: parseFloat(data.grasaCorporal),
+                agua: parseFloat(data.agua),
+                imc: parseFloat(data.imc)
+            }
+        });
+        res.status(201).json(metrics);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al registrar métricas' });
+    }
+});
+
+// Listar todas las citas (para admin/nutriólogo) o por socio
+app.get('/api/nutrition/appointments', authenticateToken, async (req, res) => {
+    const { memberId } = req.query;
+    try {
+        const appointments = await prisma.appointment.findMany({
+            where: memberId ? { memberId: String(memberId) } : {},
+            include: { member: { include: { user: true } } },
+            orderBy: { fecha: 'asc' }
+        });
+        res.json(appointments);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener citas' });
+    }
+});
+
+// Agendar cita
+app.post('/api/nutrition/appointments', authenticateToken, async (req, res) => {
+    const data = req.body;
+    try {
+        const appointment = await prisma.appointment.create({
+            data: {
+                memberId: data.memberId,
+                fecha: new Date(data.fecha),
+                hora: data.hora,
+                status: 'Programada'
+            }
+        });
+        res.status(201).json(appointment);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al agendar cita' });
+    }
+});
+
 // Serve static files from the Vite build
 app.use(express.static(path.join(__dirname, '../dist')));
 

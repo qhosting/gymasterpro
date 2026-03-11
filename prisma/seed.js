@@ -123,6 +123,59 @@ async function main() {
         });
     }
     console.log('Members seeded');
+
+    // 4. Create Body Metrics
+    await prisma.bodyMetrics.createMany({
+        data: [
+            { 
+                memberId: 'm1', 
+                peso: 85.5, 
+                masaMuscular: 32.2, 
+                grasaCorporal: 25.5, 
+                agua: 55.4, 
+                imc: 28.2,
+                fecha: new Date('2024-01-10')
+            },
+            { 
+                memberId: 'm1', 
+                peso: 83.2, 
+                masaMuscular: 33.5, 
+                grasaCorporal: 23.8, 
+                agua: 57.1, 
+                imc: 27.5,
+                fecha: new Date('2024-02-12')
+            },
+            { 
+                memberId: 'm1', 
+                peso: 81.5, 
+                masaMuscular: 35.0, 
+                grasaCorporal: 21.5, 
+                agua: 59.2, 
+                imc: 26.8,
+                fecha: new Date('2024-03-15')
+            },
+        ]
+    });
+    console.log('Metrics seeded');
+
+    // 5. Create Appointments
+    await prisma.appointment.createMany({
+        data: [
+            {
+                memberId: 'm1',
+                fecha: new Date('2024-06-20'),
+                hora: '10:00',
+                status: 'Programada'
+            },
+            {
+                memberId: 'm2',
+                fecha: new Date('2024-06-22'),
+                hora: '11:30',
+                status: 'Programada'
+            }
+        ]
+    });
+    console.log('Appointments seeded');
 }
 
 main()

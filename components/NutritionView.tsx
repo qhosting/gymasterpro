@@ -13,7 +13,12 @@ import {
   Clock,
   ArrowUpRight,
   ArrowDownRight,
-  ClipboardList
+  ClipboardList,
+  Edit3,
+  Save,
+  X,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -27,7 +32,7 @@ import {
   Area
 } from 'recharts';
 import { Member, BodyMetrics, NutritionAppointment, User, UserRole } from '../types';
-import { MOCK_METRICS, MOCK_APPOINTMENTS } from '../constants';
+import { fetchMemberMetrics, createMetrics, fetchAppointments, createAppointment } from '../services/apiService';
 
 interface NutritionViewProps {
   members: Member[];
@@ -36,11 +41,81 @@ interface NutritionViewProps {
 
 const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) => {
   const isMember = currentUser.role === UserRole.MIEMBRO;
-  const [appointments, setAppointments] = useState<NutritionAppointment[]>(MOCK_APPOINTMENTS);
-  const [metrics, setMetrics] = useState<BodyMetrics[]>(MOCK_METRICS);
+  const [appointments, setAppointments] = useState<NutritionAppointment[]>([]);
+  const [metrics, setMetrics] = useState<BodyMetrics[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>(isMember ? currentUser.id : (members[0]?.id || ''));
   const [isAddingMetrics, setIsAddingMetrics] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Forms State
+  const [newMetrics, setNewMetrics] = useState({
+    peso: '',
+    masaMuscular: '',
+    grasaCorporal: '',
+    agua: '',
+    imc: ''
+  });
+
+  const [newAppointment, setNewAppointment] = useState({
+    fecha: '',
+    hora: ''
+  });
+
+  React.useEffect(() => {
+    if (selectedMemberId) {
+      loadMemberData(selectedMemberId);
+    }
+  }, [selectedMemberId]);
+
+  const loadMemberData = async (memberId: string) => {
+    try {
+      const [metricsData, appointmentsData] = await Promise.all([
+        fetchMemberMetrics(memberId),
+        fetchAppointments(memberId)
+      ]);
+      setMetrics(metricsData);
+      setAppointments(appointmentsData);
+    } catch (error) {
+      console.error("Error loading nutrition data:", error);
+    }
+  };
+
+  const handleAddMetrics = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const savedMetrics = await createMetrics({
+        memberId: selectedMemberId,
+        ...newMetrics
+      });
+      setMetrics([...metrics, savedMetrics]);
+      setIsAddingMetrics(false);
+      setNewMetrics({ peso: '', masaMuscular: '', grasaCorporal: '', agua: '', imc: '' });
+    } catch (error) {
+      alert("Error al guardar métricas");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleScheduleId = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const savedApp = await createAppointment({
+        memberId: selectedMemberId,
+        ...newAppointment
+      });
+      setAppointments([...appointments, savedApp]);
+      setIsScheduling(false);
+      setNewAppointment({ fecha: '', hora: '' });
+    } catch (error) {
+      alert("Error al agendar cita");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const selectedMember = members.find(m => m.id === selectedMemberId);
   const memberMetrics = metrics
@@ -274,6 +349,84 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
           </div>
         </div>
       </div>
+      {/* Modal: Registrar Medidas */}
+      {isAddingMetrics && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-300">
+            <div className="bg-gray-900 p-8 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-black">Registrar Evolución</h2>
+                <p className="opacity-80 text-sm font-medium">Capta las métricas actuales del socio.</p>
+              </div>
+              <button onClick={() => setIsAddingMetrics(false)} className="p-2 hover:bg-white/20 rounded-full"><X size={24}/></button>
+            </div>
+            <form onSubmit={handleAddMetrics} className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Peso (kg)</label>
+                  <input type="number" step="0.1" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold" 
+                    value={newMetrics.peso} onChange={e => setNewMetrics({...newMetrics, peso: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Masa Muscular (%)</label>
+                  <input type="number" step="0.1" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newMetrics.masaMuscular} onChange={e => setNewMetrics({...newMetrics, masaMuscular: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grasa Corp (%)</label>
+                  <input type="number" step="0.1" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newMetrics.grasaCorporal} onChange={e => setNewMetrics({...newMetrics, grasaCorporal: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Agua (%)</label>
+                  <input type="number" step="0.1" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newMetrics.agua} onChange={e => setNewMetrics({...newMetrics, agua: e.target.value})} />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">IMC</label>
+                  <input type="number" step="0.01" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newMetrics.imc} onChange={e => setNewMetrics({...newMetrics, imc: e.target.value})} />
+                </div>
+              </div>
+              <button disabled={isLoading} className="w-full py-5 bg-orange-500 text-white rounded-3xl font-black text-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-3">
+                {isLoading ? <Loader2 className="animate-spin"/> : <Save size={20}/>} Guardar Métricas
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Agendar Cita */}
+      {isScheduling && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-300">
+            <div className="bg-emerald-600 p-8 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-black">Agendar Cita</h2>
+                <p className="opacity-80 text-sm font-medium">Nueva sesión de seguimiento nutricional.</p>
+              </div>
+              <button onClick={() => setIsScheduling(false)} className="p-2 hover:bg-white/20 rounded-full"><X size={24}/></button>
+            </div>
+            <form onSubmit={handleScheduleId} className="p-8 space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha de la Cita</label>
+                  <input type="date" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newAppointment.fecha} onChange={e => setNewAppointment({...newAppointment, fecha: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hora</label>
+                  <input type="time" required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border-2 border-transparent focus:border-orange-500 font-bold"
+                    value={newAppointment.hora} onChange={e => setNewAppointment({...newAppointment, hora: e.target.value})} />
+                </div>
+              </div>
+              <button disabled={isLoading} className="w-full py-5 bg-emerald-600 text-white rounded-3xl font-black text-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-3">
+                {isLoading ? <Loader2 className="animate-spin"/> : <Calendar size={20}/>} Confirmar Cita
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
