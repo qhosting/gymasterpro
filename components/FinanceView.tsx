@@ -84,6 +84,8 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   ];
 
   const handleProcessPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
       setIsProcessing(true);
       
       let finalTx;
