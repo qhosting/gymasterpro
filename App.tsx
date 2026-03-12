@@ -12,8 +12,7 @@ import {
   Dumbbell,
   Settings,
   ChevronRight,
-  Loader2,
-  Trophy
+  Loader2
 } from 'lucide-react';
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
@@ -27,10 +26,9 @@ import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
 import TrainingView from './components/TrainingView';
-import CommunityView from './components/CommunityView';
 import MemberProfile from './components/MemberProfile';
 import Login from './components/Login';
-import { fetchMembers, getMe, logout } from './services/apiService';
+import { fetchMembers, getMe, logout, fetchNotifications } from './services/apiService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -41,35 +39,7 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationLog[]>([
-    {
-      id: '1',
-      memberId: 'm1',
-      tipo: 'Membresía por Vencer',
-      mensaje: 'El socio Juan Pérez tiene su membresía por vencer en 3 días.',
-      timestamp: 'Hace 5 min',
-      status: 'sent',
-      read: false
-    },
-    {
-      id: '2',
-      memberId: 'm2',
-      tipo: 'Pago Recibido',
-      mensaje: 'Se ha registrado un pago de $500 de Maria García.',
-      timestamp: 'Hace 2 horas',
-      status: 'sent',
-      read: false
-    },
-    {
-      id: '3',
-      memberId: 'm3',
-      tipo: 'Nueva Cita Nutricional',
-      mensaje: 'Carlos Ruiz ha agendado una cita para mañana a las 10:00 AM.',
-      timestamp: 'Hace 4 horas',
-      status: 'sent',
-      read: true
-    }
-  ]);
+  const [notifications, setNotifications] = useState<NotificationLog[]>([]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -111,6 +81,8 @@ const App: React.FC = () => {
           if (data) {
             setMembers(data);
           }
+          const notifs = await fetchNotifications();
+          setNotifications(notifs);
         } catch (error) {
           console.error("Error loading data from DB:", error);
         }
@@ -125,7 +97,6 @@ const App: React.FC = () => {
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
-    { id: 'community', label: 'Comunidad', icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO, UserRole.NUTRIOLOGO] },
     { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'profile', label: 'Mi Perfil', icon: UserIcon, roles: [UserRole.MIEMBRO] },
     { id: 'finance', label: 'Pagos / Planes', icon: CreditCard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
@@ -140,7 +111,6 @@ const App: React.FC = () => {
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
       case 'attendance': return <AttendanceTracker members={members} />;
       case 'training': return <TrainingView members={members} currentUser={currentUser} />;
-      case 'community': return <CommunityView />;
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;

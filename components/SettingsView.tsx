@@ -4,7 +4,7 @@ import {
   Settings, Shield, Smartphone, Globe, Clock, Users, 
   Save, Database, Palette, Lock, Bell, Mail, 
   MapPin, Camera, Trash2, Edit3, UserPlus, Key,
-  Zap, Info, Cloud, Download, Apple, Layout
+  Zap, Info, Cloud, Download, Apple, Layout, MessageSquare
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { fetchSystemSettings, updateSystemSettings, fetchStaff } from '../services/apiService';
@@ -295,21 +295,22 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                   </div>
                 </div>
 
-                <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Cloud size={24} /></div>
-                    <span className="text-[10px] font-black uppercase text-blue-600">WhatsApp Biz</span>
+                <div className="p-8 bg-orange-50 rounded-[40px] border border-orange-100 space-y-4 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="p-3 bg-orange-100 text-orange-600 rounded-2xl"><MessageSquare size={24} /></div>
+                      <span className="text-[10px] font-black uppercase text-orange-600">Soporte</span>
+                    </div>
+                    <h3 className="text-xl font-bold">¿Necesitas una API personalizada?</h3>
+                    <p className="text-sm text-gray-500">Contacta con los expertos de Aurum Capital para integraciones a medida.</p>
                   </div>
-                  <h3 className="text-xl font-bold">YCloud Integration</h3>
-                  <div className="space-y-3">
-                    <input 
-                      type="password"
-                      placeholder="YCloud API Key"
-                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-orange-500"
-                      value={settings.ycloudKey}
-                      onChange={(e) => setSettings({ ...settings, ycloudKey: e.target.value })}
-                    />
-                  </div>
+                  <button 
+                    onClick={() => window.open('https://wa.me/524424000742', '_blank')}
+                    className="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-500/20"
+                  >
+                    <Smartphone size={18} />
+                    WhatsApp Aurum
+                  </button>
                 </div>
               </div>
             </div>
