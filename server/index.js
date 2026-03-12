@@ -275,18 +275,26 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
     const data = req.body;
     try {
         const result = await prisma.$transaction(async (tx) => {
-            await tx.user.update({
+            const userData = {
+                nombre: data.nombre.trim(),
+                email: data.email.trim().toLowerCase(),
+                telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
+                foto: data.foto
+            };
+
+            // Solo actualizar contraseña si se proporciona una nueva
+            if (data.password && data.password.trim() !== '') {
+                userData.password = await bcrypt.hash(data.password, 10);
+            }
+
+            const user = await tx.user.update({
                 where: { id },
-                data: {
-                    nombre: data.nombre.trim(),
-                    email: data.email.trim().toLowerCase(),
-                    telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
-                    foto: data.foto
-                }
+                data: userData
             });
 
             const member = await tx.member.update({
                 where: { id },
+                include: { user: true, plan: true },
                 data: {
                     planId: data.planId,
                     fechaVencimiento: data.fechaVencimiento ? new Date(data.fechaVencimiento) : undefined,
@@ -298,7 +306,20 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
                 }
             });
 
-            return member;
+            // Devolver objeto transformado consistente con el listado
+            return {
+                ...member.user,
+                id: member.id,
+                planId: member.planId,
+                status: member.status,
+                deuda: member.deuda,
+                fechaVencimiento: member.fechaVencimiento.toISOString().split('T')[0],
+                fechaNacimiento: member.fechaNacimiento ? member.fechaNacimiento.toISOString().split('T')[0] : null,
+                objetivo: member.objetivo,
+                telefonoEmergencia: member.telefonoEmergencia,
+                contactoEmergencia: member.contactoEmergencia,
+                fechaRegistro: member.user.createdAt ? member.user.createdAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+            };
         });
 
         // Invalidar cache de miembros

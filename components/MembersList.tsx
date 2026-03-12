@@ -167,8 +167,8 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
           foto: finalFoto,
         });
         
-        // Update local state
-        setMembers(members.map(m => m.id === selectedMember.id ? { ...m, ...data, foto: finalFoto } : m));
+        // Update local state with the actual object from server
+        setMembers(members.map(m => m.id === selectedMember.id ? updatedMember : m));
         setIsModalOpen(false);
         alert("Socio actualizado con éxito");
       } else {
