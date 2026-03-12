@@ -41,6 +41,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const [appointments, setAppointments] = useState<NutritionAppointment[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<string | null>(null);
   const [editAppForm, setEditAppForm] = useState({ fecha: '', hora: '' });
+  const [isEditMode, setIsEditMode] = useState(false);
 
   React.useEffect(() => {
     loadAppointments();
@@ -127,12 +128,12 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
     setIsCameraActive(false);
   };
 
-  const processAddMember = async (data: MemberFormData) => {
+  const handleSubmitMember = async (data: MemberFormData) => {
     setIsLoading(true);
     try {
-      let finalFoto = `https://picsum.photos/seed/${data.nombre}/100/100`;
+      let finalFoto = isEditMode ? selectedMember?.foto || '' : `https://picsum.photos/seed/${data.nombre}/100/100`;
 
-      if (capturedImage) {
+      if (capturedImage && capturedImage !== selectedMember?.foto) {
         // Convert base64 to File
         const res = await fetch(capturedImage);
         const blob = await res.blob();
@@ -141,25 +142,40 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
         finalFoto = uploadRes.url;
       }
 
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 30);
+      if (isEditMode && selectedMember) {
+        const updatedMember = await updateMember(selectedMember.id, {
+          ...data,
+          foto: finalFoto,
+        });
+        
+        // Update local state
+        setMembers(members.map(m => m.id === selectedMember.id ? { ...m, ...data, foto: finalFoto } : m));
+        setIsModalOpen(false);
+        alert("Socio actualizado con éxito");
+      } else {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 30);
 
-      const memberData = {
-        ...data,
-        fechaVencimiento: expirationDate.toISOString(),
-        role: UserRole.MIEMBRO,
-        status: MembershipStatus.ACTIVO,
-        deuda: 0,
-        foto: finalFoto,
-      };
+        const memberData = {
+          ...data,
+          fechaVencimiento: expirationDate.toISOString(),
+          role: UserRole.MIEMBRO,
+          status: MembershipStatus.ACTIVO,
+          deuda: 0,
+          foto: finalFoto,
+        };
 
-      const savedMember = await createMember(memberData);
-      setMembers([savedMember, ...members]);
-      setIsModalOpen(false);
+        const savedMember = await createMember(memberData);
+        setMembers([savedMember, ...members]);
+        setIsModalOpen(false);
+      }
+      
       reset();
       setCapturedImage(null);
+      setIsEditMode(false);
+      setSelectedMember(null);
     } catch (error) {
-      console.error("Error adding member:", error);
+      console.error("Error saving member:", error);
       alert("Error al guardar el socio.");
     } finally {
       setIsLoading(false);
@@ -167,8 +183,18 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   };
 
   const resetForm = () => {
-    reset();
+    reset({
+      nombre: '',
+      email: '',
+      telefono: '',
+      planId: '1',
+      objetivo: 'Pérdida de peso',
+      contactoEmergencia: '',
+      telefonoEmergencia: '',
+      password: ''
+    });
     setCapturedImage(null);
+    setIsEditMode(false);
   };
 
   const handleUpdateAppointment = (id: string) => {
@@ -245,7 +271,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
             <Download size={20} />
           </button>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { resetForm(); setIsModalOpen(true); }}
             className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-orange-500/20"
           >
             <Plus size={20} />
@@ -573,7 +599,24 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
             </div>
 
             <div className="p-10 bg-gray-50 border-t flex gap-4 rounded-bl-[50px]">
-              <button className="flex-1 py-5 bg-orange-500 text-white rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-600 shadow-xl shadow-orange-500/30 transition-all active:scale-95">
+              <button 
+                onClick={() => {
+                  setIsEditMode(true);
+                  reset({
+                    nombre: selectedMember.nombre,
+                    email: selectedMember.email,
+                    telefono: selectedMember.telefono,
+                    planId: selectedMember.planId,
+                    objetivo: selectedMember.objetivo || 'Pérdida de peso',
+                    contactoEmergencia: selectedMember.contactoEmergencia || '',
+                    telefonoEmergencia: selectedMember.telefonoEmergencia || '',
+                    password: ''
+                  });
+                  setCapturedImage(selectedMember.foto);
+                  setIsModalOpen(true);
+                }}
+                className="flex-1 py-5 bg-orange-500 text-white rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-600 shadow-xl shadow-orange-500/30 transition-all active:scale-95"
+              >
                 <Edit2 size={18}/> Editar Socio
               </button>
               <button 
@@ -660,7 +703,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                 <button onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} className="p-3 hover:bg-gray-100 rounded-3xl transition-all"><X size={28}/></button>
               </div>
               
-              <form onSubmit={handleSubmit(processAddMember)} className="space-y-8">
+              <form onSubmit={handleSubmit(handleSubmitMember)} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nombre del Socio</label>
@@ -748,7 +791,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                   disabled={isLoading}
                   className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-black shadow-[0_20px_50px_-10px_rgba(0,0,0,0.3)] transition-all transform active:scale-95 flex items-center justify-center gap-4 disabled:opacity-50"
                 >
-                  {isLoading ? <Loader2 className="animate-spin" /> : <>Finalizar Alta de Socio <ChevronRight size={24}/></>}
+                  {isLoading ? <Loader2 className="animate-spin" /> : <>{isEditMode ? 'Guardar Cambios' : 'Finalizar Alta de Socio'} <ChevronRight size={24}/></>}
                 </button>
               </form>
             </div>
