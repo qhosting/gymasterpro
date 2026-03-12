@@ -15,11 +15,15 @@ import {
   Info,
   Download,
   Activity,
-  Heart
+  Heart,
+  X,
+  CreditCard as CardIcon,
+  Loader2
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Member, User as UserType } from '../types';
-import { fetchFullProfile, updateMemberSettings } from '../services/apiService';
+import { fetchFullProfile, updateMemberSettings, fetchPlans, processOpenpayPayment, fetchSystemSettings } from '../services/apiService';
+import { Plan } from '../types';
 
 interface MemberProfileProps {
   currentUser: UserType;
@@ -30,10 +34,26 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
   const [profile, setProfile] = React.useState<any>(null);
   const [qrUrl, setQrUrl] = React.useState<string>('');
   const [loading, setLoading] = React.useState(true);
+  const [plans, setPlans] = React.useState<Plan[]>([]);
+  const [isRenewalModalOpen, setIsRenewalModalOpen] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [selectedPlan, setSelectedPlan] = React.useState<Plan | null>(null);
+  const [cardData, setCardData] = React.useState({ holder: '', number: '', expiry: '', cvv: '' });
 
   React.useEffect(() => {
     loadProfile();
+    loadPlans();
   }, [currentUser.id]);
+
+  const loadPlans = async () => {
+    try {
+      const data = await fetchPlans();
+      setPlans(data);
+      if (data.length > 0) setSelectedPlan(data[0]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -65,6 +85,42 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
       setProfile({ ...profile, ...updates });
     } catch (error) {
       alert("Error al conectar wearable");
+    }
+  };
+
+  const handleProcessRenewal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan || !profile) return;
+    
+    try {
+      setIsProcessing(true);
+      const settings = await fetchSystemSettings();
+      
+      const paymentPayload = {
+        memberId: profile.id,
+        amount: selectedPlan.costo,
+        method: 'Openpay',
+        tipo: 'Mensualidad',
+        card: {
+            holder_name: cardData.holder,
+            card_number: cardData.number.replace(/\s/g, ''),
+            expiration_month: cardData.expiry.split('/')[0],
+            expiration_year: cardData.expiry.split('/')[1],
+            cvv2: cardData.cvv
+        },
+        deviceSessionId: "xyz123", // Reemplazar con ID real de Openpay.js si se incluye la librería
+        description: `Renovación Plan ${selectedPlan.nombre} - ${profile.nombre}`
+      };
+
+      await processOpenpayPayment(paymentPayload);
+      alert('¡Membresía renovada con éxito!');
+      setIsRenewalModalOpen(false);
+      loadProfile(); // Recargar datos
+    } catch (error: any) {
+      console.error(error);
+      alert('Error al procesar el pago: ' + (error.message || 'Error desconocido'));
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -182,7 +238,10 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
                   {profile?.fechaVencimiento ? profile.fechaVencimiento.split('-').reverse().join('/') : '--/--/----'}
                 </h4>
                 <p className="text-sm text-gray-500 font-medium mt-1">Faltan 14 días para renovar</p>
-                <button className="mt-6 w-full py-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all">
+                <button 
+                  onClick={() => setIsRenewalModalOpen(true)}
+                  className="mt-6 w-full py-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all"
+                >
                   Renovar Ahora
                 </button>
               </div>
@@ -275,6 +334,105 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
           </div>
         </div>
       </div>
+
+      {/* Renewal Modal */}
+      {isRenewalModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-4">
+          <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-md" onClick={() => setIsRenewalModalOpen(false)}></div>
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
+             <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-500/20">
+                      <CreditCard size={20} />
+                   </div>
+                   <h2 className="text-xl font-black text-gray-900">Renovación de Membresía</h2>
+                </div>
+                <button onClick={() => setIsRenewalModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors">
+                   <X size={20} className="text-gray-400" />
+                </button>
+             </div>
+
+             <form onSubmit={handleProcessRenewal} className="p-8 space-y-6">
+                <div className="space-y-4">
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Selecciona tu Plan</label>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {plans.map(plan => (
+                        <div 
+                          key={plan.id}
+                          onClick={() => setSelectedPlan(plan)}
+                          className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                            selectedPlan?.id === plan.id ? 'border-orange-500 bg-orange-50' : 'border-gray-100 hover:border-gray-200'
+                          }`}
+                        >
+                           <p className="font-black text-sm">{plan.nombre}</p>
+                           <p className="text-orange-500 font-bold text-xs">${plan.costo} MXN</p>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                   <div className="flex items-center gap-2 mb-2">
+                      <CardIcon size={16} className="text-orange-500" />
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Pago con Tarjeta (Openpay)</span>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 gap-4">
+                      <input 
+                        type="text" 
+                        placeholder="Nombre en la Tarjeta" 
+                        required
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-orange-500 transition-all"
+                        value={cardData.holder}
+                        onChange={(e) => setCardData({...cardData, holder: e.target.value})}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="0000 0000 0000 0000" 
+                        required
+                        maxLength={19}
+                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-orange-500 transition-all font-mono"
+                        value={cardData.number}
+                        onChange={(e) => setCardData({...cardData, number: e.target.value})}
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                         <input 
+                           type="text" 
+                           placeholder="MM/YY" 
+                           required
+                           maxLength={5}
+                           className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-orange-500 transition-all"
+                           value={cardData.expiry}
+                           onChange={(e) => setCardData({...cardData, expiry: e.target.value})}
+                         />
+                         <input 
+                           type="password" 
+                           placeholder="CVV" 
+                           required
+                           maxLength={4}
+                           className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-orange-500 transition-all"
+                           value={cardData.cvv}
+                           onChange={(e) => setCardData({...cardData, cvv: e.target.value})}
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isProcessing}
+                  className="w-full py-4 bg-orange-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 active:scale-95 disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : (
+                    <>Proceder con el Pago <ChevronRight size={20} /></>
+                  )}
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
