@@ -8,13 +8,11 @@ import {
   Zap, 
   Award, 
   CreditCard, 
-  MapPin, 
   Phone, 
   Mail,
   ChevronRight,
   Info,
   Download,
-  Activity,
   Heart,
   X,
   CreditCard as CardIcon,
@@ -22,7 +20,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Member, User as UserType } from '../types';
-import { fetchFullProfile, updateMemberSettings, fetchPlans, processOpenpayPayment, fetchSystemSettings } from '../services/apiService';
+import { fetchFullProfile, fetchPlans, processOpenpayPayment, fetchSystemSettings } from '../services/apiService';
 import { Plan } from '../types';
 
 interface MemberProfileProps {
@@ -74,20 +72,6 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
     }
   };
 
-  const toggleWearable = async (type: 'apple' | 'google') => {
-    if (!profile) return;
-    try {
-      const updates = {
-        conectadoApple: type === 'apple' ? !profile.conectadoApple : profile.conectadoApple,
-        conectadoGoogle: type === 'google' ? !profile.conectadoGoogle : profile.conectadoGoogle,
-      };
-      await updateMemberSettings(profile.id, updates);
-      setProfile({ ...profile, ...updates });
-    } catch (error) {
-      alert("Error al conectar wearable");
-    }
-  };
-
   const handleProcessRenewal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlan || !profile) return;
@@ -108,14 +92,14 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
             expiration_year: cardData.expiry.split('/')[1],
             cvv2: cardData.cvv
         },
-        deviceSessionId: "xyz123", // Reemplazar con ID real de Openpay.js si se incluye la librería
+        deviceSessionId: "xyz123", 
         description: `Renovación Plan ${selectedPlan.nombre} - ${profile.nombre}`
       };
 
       await processOpenpayPayment(paymentPayload);
       alert('¡Membresía renovada con éxito!');
       setIsRenewalModalOpen(false);
-      loadProfile(); // Recargar datos
+      loadProfile(); 
     } catch (error: any) {
       console.error(error);
       alert('Error al procesar el pago: ' + (error.message || 'Error desconocido'));
@@ -179,7 +163,6 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* QR Access Card */}
           <div className="bg-gray-900 p-8 rounded-[40px] text-white shadow-2xl flex flex-col items-center space-y-4 group hover:scale-105 transition-transform duration-500">
             <div className="bg-white p-2 rounded-3xl shadow-inner overflow-hidden flex items-center justify-center">
               {qrUrl ? (
@@ -211,9 +194,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column */}
         <div className="lg:col-span-8 space-y-8">
-          {/* Membership Status */}
           <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
             <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
               <CreditCard className="text-orange-500" /> Estado de Membresía
@@ -248,7 +229,6 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Achievements / Gamification */}
           <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
             <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
               <Award className="text-orange-500" /> Mis Logros
@@ -269,43 +249,8 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
               ))}
             </div>
           </div>
-
-          {/* Wearables Connection */}
-          <div className="bg-white p-10 rounded-[50px] border border-gray-100 shadow-sm relative overflow-hidden group">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl"></div>
-             <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
-                <div className="space-y-4 text-center md:text-left">
-                   <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center justify-center md:justify-start gap-3">
-                      <Heart className="text-red-500 fill-red-500" /> Salud & Wearables
-                   </h3>
-                   <p className="text-sm font-medium text-gray-400 max-w-sm">
-                      Sincroniza tus pasos, frecuencia cardíaca y sueño para un seguimiento integral 360°.
-                   </p>
-                </div>
-                <div className="flex gap-4">
-                   <button 
-                    onClick={() => toggleWearable('apple')}
-                    className={`px-8 py-5 rounded-[30px] font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-all shadow-xl ${
-                      profile?.conectadoApple ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-black text-white'
-                    }`}
-                   >
-                      <Activity size={20} className={profile?.conectadoApple ? 'text-white' : 'text-blue-400'} /> 
-                      {profile?.conectadoApple ? 'Conectado' : 'Apple Health'}
-                   </button>
-                   <button 
-                    onClick={() => toggleWearable('google')}
-                    className={`px-8 py-5 border-2 rounded-[30px] font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-all ${
-                      profile?.conectadoGoogle ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white border-gray-100 hover:border-blue-500'
-                    }`}
-                   >
-                      {profile?.conectadoGoogle ? 'Conectado Go' : 'Google Fit'}
-                   </button>
-                </div>
-             </div>
-          </div>
         </div>
 
-        {/* Right Column */}
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-orange-500 p-8 rounded-[40px] text-white shadow-xl shadow-orange-500/20">
             <h3 className="text-lg font-black mb-4">Tips del Día</h3>
@@ -319,23 +264,9 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
               <p className="text-xs font-black uppercase tracking-widest">Coach GymMaster</p>
             </div>
           </div>
-
-          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-black text-gray-900 mb-6">Ubicación de Sede</h3>
-            <div className="aspect-video bg-gray-100 rounded-3xl mb-4 flex items-center justify-center overflow-hidden relative">
-               <img src="https://picsum.photos/seed/map/400/200" className="w-full h-full object-cover opacity-50" alt="map" />
-               <div className="absolute inset-0 flex items-center justify-center">
-                 <MapPin size={40} className="text-orange-500 animate-bounce" />
-               </div>
-            </div>
-            <p className="text-xs font-bold text-gray-500 flex items-center gap-2">
-              <MapPin size={14} /> Av. Principal #123, Ciudad Fit
-            </p>
-          </div>
         </div>
       </div>
 
-      {/* Renewal Modal */}
       {isRenewalModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-4">
           <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-md" onClick={() => setIsRenewalModalOpen(false)}></div>
