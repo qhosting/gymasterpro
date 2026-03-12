@@ -226,7 +226,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
                 data: {
                     nombre: data.nombre,
                     email: data.email,
-                    telefono: data.telefono,
+                    telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
                     role: data.role || 'MIEMBRO',
                     foto: data.foto
                 }
@@ -253,10 +253,17 @@ app.post('/api/members', authenticateToken, async (req, res) => {
         
         res.status(201).json(result);
     } catch (error) {
-        console.error('Error creating member:', error);
+        console.error('Error creating member detail:', error);
         if (error.code === 'P2002') {
-            const field = error.meta?.target?.[0] || 'dato';
-            return res.status(400).json({ error: `El ${field === 'email' ? 'correo' : 'teléfono'} ya está registrado con otro socio.` });
+            const target = error.meta?.target || [];
+            const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
+            const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
+            
+            let msg = 'Ya existe un registro con esos datos.';
+            if (isEmail) msg = `El correo ${data.email} ya está registrado.`;
+            else if (isPhone) msg = `El teléfono ${data.telefono} ya está registrado.`;
+            
+            return res.status(400).json({ error: msg });
         }
         res.status(500).json({ error: 'Error al crear miembro' });
     }
@@ -273,7 +280,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
                 data: {
                     nombre: data.nombre,
                     email: data.email,
-                    telefono: data.telefono,
+                    telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
                     foto: data.foto
                 }
             });
@@ -301,8 +308,15 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error updating member:', error);
         if (error.code === 'P2002') {
-            const field = error.meta?.target?.[0] || 'dato';
-            return res.status(400).json({ error: `El ${field === 'email' ? 'correo' : 'teléfono'} ya está registrado con otro socio.` });
+            const target = error.meta?.target || [];
+            const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
+            const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
+            
+            let msg = 'Los nuevos datos (correo o teléfono) ya pertenecen a otro socio.';
+            if (isEmail) msg = `El correo ${data.email} ya está registrado con otro socio.`;
+            else if (isPhone) msg = `El teléfono ${data.telefono} ya está registrado con otro socio.`;
+            
+            return res.status(400).json({ error: msg });
         }
         res.status(500).json({ error: 'Error al actualizar miembro' });
     }
