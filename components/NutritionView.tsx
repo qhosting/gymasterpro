@@ -236,7 +236,9 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-purple-50 text-purple-500 rounded-xl"><TrendingDown size={20} /></div>
               </div>
-              <p className="text-2xl font-black text-gray-900">{latestMetrics?.imc || '--'}</p>
+              <p className="text-2xl font-black text-gray-900">
+                {latestMetrics?.imc ? Number(latestMetrics.imc).toFixed(1) : '--'}
+              </p>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">IMC</p>
             </div>
           </div>
