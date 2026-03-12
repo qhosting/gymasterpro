@@ -224,8 +224,8 @@ app.post('/api/members', authenticateToken, async (req, res) => {
         const result = await prisma.$transaction(async (tx) => {
             const user = await tx.user.create({
                 data: {
-                    nombre: data.nombre,
-                    email: data.email,
+                    nombre: data.nombre.trim(),
+                    email: data.email.trim().toLowerCase(),
                     telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
                     role: data.role || 'MIEMBRO',
                     foto: data.foto
@@ -260,8 +260,8 @@ app.post('/api/members', authenticateToken, async (req, res) => {
             const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
             
             let msg = 'Ya existe un registro con esos datos.';
-            if (isEmail) msg = `El correo ${data.email} ya está registrado.`;
-            else if (isPhone) msg = `El teléfono ${data.telefono} ya está registrado.`;
+            if (isEmail) msg = `El correo "${data.email.toLowerCase()}" ya pertenece a otro socio.`;
+            else if (isPhone) msg = `El teléfono "${data.telefono}" ya pertenece a otro socio.`;
             
             return res.status(400).json({ error: msg });
         }
@@ -278,8 +278,8 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
             await tx.user.update({
                 where: { id },
                 data: {
-                    nombre: data.nombre,
-                    email: data.email,
+                    nombre: data.nombre.trim(),
+                    email: data.email.trim().toLowerCase(),
                     telefono: data.telefono && data.telefono.trim() !== '' ? data.telefono.trim() : null,
                     foto: data.foto
                 }
@@ -312,9 +312,9 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
             const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
             const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
             
-            let msg = 'Los nuevos datos (correo o teléfono) ya pertenecen a otro socio.';
-            if (isEmail) msg = `El correo ${data.email} ya está registrado con otro socio.`;
-            else if (isPhone) msg = `El teléfono ${data.telefono} ya está registrado con otro socio.`;
+            let msg = 'Los nuevos datos ya pertenecen a otro socio.';
+            if (isEmail) msg = `El correo "${data.email.toLowerCase()}" ya pertenece a otro socio.`;
+            else if (isPhone) msg = `El teléfono "${data.telefono}" ya pertenece a otro socio.`;
             
             return res.status(400).json({ error: msg });
         }
