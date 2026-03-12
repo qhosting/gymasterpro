@@ -59,7 +59,10 @@ export const createMember = async (memberData: any) => {
         headers: getHeaders(),
         body: JSON.stringify(memberData)
     });
-    if (!response.ok) throw new Error('Failed to create member');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create member');
+    }
     return await response.json();
 };
 
@@ -69,7 +72,10 @@ export const updateMember = async (id: string, memberData: any) => {
         headers: getHeaders(),
         body: JSON.stringify(memberData)
     });
-    if (!response.ok) throw new Error('Failed to update member');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update member');
+    }
     return await response.json();
 };
 

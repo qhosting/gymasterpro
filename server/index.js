@@ -254,6 +254,10 @@ app.post('/api/members', authenticateToken, async (req, res) => {
         res.status(201).json(result);
     } catch (error) {
         console.error('Error creating member:', error);
+        if (error.code === 'P2002') {
+            const field = error.meta?.target?.[0] || 'dato';
+            return res.status(400).json({ error: `El ${field === 'email' ? 'correo' : 'teléfono'} ya está registrado con otro socio.` });
+        }
         res.status(500).json({ error: 'Error al crear miembro' });
     }
 });
@@ -296,6 +300,10 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('Error updating member:', error);
+        if (error.code === 'P2002') {
+            const field = error.meta?.target?.[0] || 'dato';
+            return res.status(400).json({ error: `El ${field === 'email' ? 'correo' : 'teléfono'} ya está registrado con otro socio.` });
+        }
         res.status(500).json({ error: 'Error al actualizar miembro' });
     }
 });

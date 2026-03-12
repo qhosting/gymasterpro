@@ -188,9 +188,9 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
       setCapturedImage(null);
       setIsEditMode(false);
       setSelectedMember(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving member:", error);
-      alert("Error al guardar el socio.");
+      alert(error.message || "Error al guardar el socio.");
     } finally {
       setIsLoading(false);
     }
