@@ -4,11 +4,12 @@ import {
   Bell, MessageSquare, Send, Calendar, Settings, CheckCircle, 
   AlertCircle, Smartphone, Users, Zap, History, LayoutGrid,
   Filter, Trash2, Copy, Sparkles, Clock, ShieldCheck, ChevronRight,
-  RefreshCcw, Play, Loader2
+  RefreshCcw, Play, Loader2, Cpu
 } from 'lucide-react';
 import { Member, WahaConfig, NotificationLog, MembershipStatus } from '../types';
 import { generateNotificationTemplate } from '../services/geminiService';
 import { sendWahaMessage, checkWahaStatus } from '../services/wahaService';
+import { fetchNotifications, createNotificationLog } from '../services/apiService';
 
 interface NotificationsViewProps {
   members: Member[];
@@ -54,8 +55,17 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
       const online = await checkWahaStatus(wahaConfig);
       setIsWahaOnline(online);
     };
+    const loadHistory = async () => {
+      try {
+        const data = await fetchNotifications();
+        setNotifications(data);
+      } catch (err) {
+        console.error("Error loading notification history:", err);
+      }
+    };
     verifyStatus();
-  }, [wahaConfig]);
+    loadHistory();
+  }, [wahaConfig, setNotifications]);
 
   const handleGenerate = async () => {
     if (!selectedMember) return;
@@ -78,16 +88,14 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
       await sendWahaMessage(wahaConfig, targetMember.telefono, msg);
       if (!customMsg) setSendFeedback({ type: 'success', msg: '¡Mensaje enviado correctamente!' });
       
-      const newLog: NotificationLog = {
-        id: Date.now().toString(),
+      const logData = {
         memberId: targetMember.id,
-        timestamp: new Date().toLocaleString(),
         mensaje: msg,
-        tipo: 'Recordatorio 3 Días',
-        status: 'sent',
-        read: false
+        tipo: customMsg ? 'Automatización' : msgType,
+        status: 'sent'
       };
-      setNotifications(prev => [newLog, ...prev]);
+      const savedLog = await createNotificationLog(logData);
+      setNotifications(prev => [savedLog, ...prev]);
       return true;
     } catch (error: any) {
       if (!customMsg) setSendFeedback({ type: 'error', msg: error.message || 'Error al conectar con WAHA.' });
@@ -194,7 +202,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
               activeTab === tab.id ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            <tab.icon size={16} />
+            <tab.icon size={16} className="" />
             {tab.label}
             {tab.id === 'automation' && expiringIn3Days.length > 0 && (
               <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -447,20 +455,5 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
     </div>
   );
 };
-
-const Cpu = ({ size, className }: { size: number, className: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-    <rect x="9" y="9" width="6" height="6"></rect>
-    <line x1="9" y1="1" x2="9" y2="4"></line>
-    <line x1="15" y1="1" x2="15" y2="4"></line>
-    <line x1="9" y1="20" x2="9" y2="23"></line>
-    <line x1="15" y1="20" x2="15" y2="23"></line>
-    <line x1="20" y1="9" x2="23" y2="9"></line>
-    <line x1="20" y1="15" x2="23" y2="15"></line>
-    <line x1="1" y1="9" x2="4" y2="9"></line>
-    <line x1="1" y1="15" x2="4" y2="15"></line>
-  </svg>
-);
 
 export default NotificationsView;

@@ -183,27 +183,25 @@ app.get('/api/staff', authenticateToken, async (req, res) => {
 // Listar miembros
 app.get('/api/members', authenticateToken, async (req, res) => {
     try {
-        const cacheKey = 'all_members_list';
-        const cachedData = await redisClient.get(cacheKey);
-
-        if (cachedData) {
-            console.log('Serving members from Redis cache');
-            return res.json(JSON.parse(cachedData));
-        }
-
         const members = await prisma.member.findMany({
             include: { user: true, plan: true }
         });
+        
         const transformedMembers = members.map(m => ({
             ...m.user,
-            ...m,
-            user: undefined
+            id: m.id,
+            planId: m.planId,
+            status: m.status,
+            deuda: m.deuda,
+            fechaVencimiento: m.fechaVencimiento.toISOString().split('T')[0],
+            fechaNacimiento: m.fechaNacimiento ? m.fechaNacimiento.toISOString().split('T')[0] : null,
+            objetivo: m.objetivo,
+            telefonoEmergencia: m.telefonoEmergencia,
+            contactoEmergencia: m.contactoEmergencia,
+            fechaRegistro: m.user.createdAt ? m.user.createdAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
         }));
 
-        // Guardar en cache por 5 minutos
-        await redisClient.setEx(cacheKey, 300, JSON.stringify(transformedMembers));
-        
-        console.log('Serving members from Database and caching');
+        console.log(`Serving ${transformedMembers.length} members from Database`);
         res.json(transformedMembers);
     } catch (error) {
         console.error('Error fetching members:', error);
@@ -321,6 +319,43 @@ app.get('/api/plans', async (req, res) => {
     } catch (error) {
         console.error('Error fetching plans:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Crear plan
+app.post('/api/plans', authenticateToken, async (req, res) => {
+    const data = req.body;
+    try {
+        const plan = await prisma.plan.create({ data });
+        res.status(201).json(plan);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear plan' });
+    }
+});
+
+// Actualizar plan
+app.put('/api/plans/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+    try {
+        const plan = await prisma.plan.update({
+            where: { id },
+            data
+        });
+        res.json(plan);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar plan' });
+    }
+});
+
+// Eliminar plan
+app.delete('/api/plans/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.plan.delete({ where: { id } });
+        res.json({ message: 'Plan eliminado' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar plan' });
     }
 });
 
@@ -776,6 +811,50 @@ app.get('/api/whatsapp/status', authenticateToken, async (req, res) => {
         res.json({ online: response.ok });
     } catch {
         res.json({ online: false });
+    }
+});
+
+// --- ENDPOINTS DE NOTIFICACIONES ---
+
+// Obtener todas las notificaciones
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+    try {
+        const notifications = await prisma.notification.findMany({
+            include: { member: { include: { user: true } } },
+            orderBy: { timestamp: 'desc' },
+            take: 50
+        });
+        res.json(notifications);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener notificaciones' });
+    }
+});
+
+// Crear notificación (Log)
+app.post('/api/notifications', authenticateToken, async (req, res) => {
+    const { memberId, tipo, mensaje, status } = req.body;
+    try {
+        const notification = await prisma.notification.create({
+            data: { memberId, tipo, mensaje, status: status || 'sent' }
+        });
+        res.status(201).json(notification);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al guardar notificación' });
+    }
+});
+
+// Marcar como leída
+app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { read } = req.body;
+    try {
+        const notification = await prisma.notification.update({
+            where: { id },
+            data: { read }
+        });
+        res.json(notification);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar notificación' });
     }
 });
 

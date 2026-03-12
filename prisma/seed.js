@@ -102,6 +102,60 @@ async function main() {
                 telefonoEmergencia: '5544332211',
                 objetivo: 'Hipertrofia',
             }
+        },
+        {
+            id: 'm3',
+            nombre: 'Pedro Armas',
+            email: 'pedro@example.com',
+            password: hashedMemberPassword,
+            role: 'MIEMBRO',
+            foto: 'https://picsum.photos/seed/pedro/100/100',
+            memberInfo: {
+                fechaVencimiento: new Date('2024-08-05'),
+                planId: '3',
+                status: 'ACTIVO',
+                deuda: 0,
+                fechaNacimiento: new Date('1992-03-15'),
+                contactoEmergencia: 'Padre - Jose',
+                telefonoEmergencia: '5599887766',
+                objetivo: 'Resistencia',
+            }
+        },
+        {
+            id: 'm4',
+            nombre: 'Ana Rojas',
+            email: 'ana@example.com',
+            password: hashedMemberPassword,
+            role: 'MIEMBRO',
+            foto: 'https://picsum.photos/seed/ana/100/100',
+            memberInfo: {
+                fechaVencimiento: new Date('2024-06-30'),
+                planId: '1',
+                status: 'VENCIDO',
+                deuda: 450,
+                fechaNacimiento: new Date('1995-12-05'),
+                contactoEmergencia: 'Madre - Elena',
+                telefonoEmergencia: '5511447788',
+                objetivo: 'Tonificación',
+            }
+        },
+        {
+            id: 'm5',
+            nombre: 'Carlos Slim',
+            email: 'carlos@example.com',
+            password: hashedMemberPassword,
+            role: 'MIEMBRO',
+            foto: 'https://picsum.photos/seed/carlos/100/100',
+            memberInfo: {
+                fechaVencimiento: new Date('2024-09-12'),
+                planId: '2',
+                status: 'PENDIENTE',
+                deuda: 0,
+                fechaNacimiento: new Date('1988-08-25'),
+                contactoEmergencia: 'Amigo - Roberto',
+                telefonoEmergencia: '5500991122',
+                objetivo: 'Masa Muscular',
+            }
         }
     ];
 
@@ -123,6 +177,22 @@ async function main() {
         });
     }
     console.log('Members seeded');
+
+    // 3.5 Create Nutritionist
+    const hashedNutriPassword = await bcrypt.hash('nutri123', 10);
+    await prisma.user.upsert({
+        where: { email: 'nutri@gymmaster.com' },
+        update: { password: hashedNutriPassword },
+        create: {
+            id: 'n1',
+            nombre: 'Dr. Roberto Nutri',
+            email: 'nutri@gymmaster.com',
+            password: hashedNutriPassword,
+            role: 'NUTRIOLOGO',
+            foto: 'https://picsum.photos/seed/nutri/100/100'
+        }
+    });
+    console.log('Nutritionist seeded');
 
     // 4. Create Body Metrics
     await prisma.bodyMetrics.createMany({

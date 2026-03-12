@@ -1,6 +1,6 @@
-// Use relative URL in production to talk to the same host
-const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001/api' 
+// Use current origin but on port 3001 for development, or /api for production
+const API_URL = typeof window !== 'undefined'
+    ? (window.location.port === '3000' ? `${window.location.protocol}//${window.location.hostname}:3001/api` : '/api')
     : '/api';
 
 const getHeaders = () => {
@@ -264,5 +264,64 @@ export const fetchStaff = async () => {
         headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch staff');
+    return await response.json();
+};
+
+// --- PLANES CRUD ---
+export const createPlan = async (planData: any) => {
+    const response = await fetch(`${API_URL}/plans`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(planData)
+    });
+    if (!response.ok) throw new Error('Failed to create plan');
+    return await response.json();
+};
+
+export const updatePlan = async (id: string, planData: any) => {
+    const response = await fetch(`${API_URL}/plans/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(planData)
+    });
+    if (!response.ok) throw new Error('Failed to update plan');
+    return await response.json();
+};
+
+export const deletePlan = async (id: string) => {
+    const response = await fetch(`${API_URL}/plans/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete plan');
+    return await response.json();
+};
+
+// --- NOTIFICACIONES ---
+export const fetchNotifications = async () => {
+    const response = await fetch(`${API_URL}/notifications`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch notifications');
+    return await response.json();
+};
+
+export const createNotificationLog = async (notifData: any) => {
+    const response = await fetch(`${API_URL}/notifications`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(notifData)
+    });
+    if (!response.ok) throw new Error('Failed to save notification');
+    return await response.json();
+};
+
+export const markNotificationAsRead = async (id: string, read: boolean = true) => {
+    const response = await fetch(`${API_URL}/notifications/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ read })
+    });
+    if (!response.ok) throw new Error('Failed to update notification');
     return await response.json();
 };

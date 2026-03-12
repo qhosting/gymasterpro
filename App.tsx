@@ -108,7 +108,7 @@ const App: React.FC = () => {
       const loadData = async () => {
         try {
           const data = await fetchMembers();
-          if (data && data.length > 0) {
+          if (data) {
             setMembers(data);
           }
         } catch (error) {

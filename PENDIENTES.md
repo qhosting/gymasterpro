@@ -20,6 +20,8 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 ## 🟢 Prioridad Baja (Mejoras)
 - [ ] **Modo Offline**: Implementar almacenamiento local (IndexedDB) para permitir lectura de datos sin conexión.
 - [ ] **Temas Personalizados**: Opción de Modo Oscuro o cambio de colores de marca según el gimnasio.
+- [x] **Gestión de Planes**: CRUD completo de planes de membresía desde el panel administrativo.
+- [x] **Notificaciones Persistentes**: Guardado de historial de comunicaciones en base de datos.
 - [x] **Notificaciones Push**: Scaffold e interfaz de configuración listos para producción.
 - [x] **Tests Unitarios**: Configuración con Vitest y Testing Library completada con pruebas iniciales.
 

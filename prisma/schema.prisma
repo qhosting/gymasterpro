@@ -10,10 +10,10 @@ model User {
   id       String  @id @default(uuid())
   nombre   String
   email    String  @unique
-  telefono String? @unique
   role     Role    @default(MIEMBRO)
   foto     String?
   password String?
+  telefono String? @unique
   member   Member?
 }
 
@@ -31,18 +31,19 @@ model Member {
   notas              String?
   ultimaAsistencia   DateTime?
   rachaDias          Int              @default(0)
-  puntosComunidad    Int              @default(0)
   conectadoApple     Boolean          @default(false)
   conectadoGoogle    Boolean          @default(false)
-  pushEnabled        Boolean          @default(true)
   logros             String[]         @default([])
+  puntosComunidad    Int              @default(0)
+  pushEnabled        Boolean          @default(true)
   appointments       Appointment[]
   attendance         Attendance[]
   metrics            BodyMetrics[]
   user               User             @relation(fields: [id], references: [id])
   plan               Plan             @relation(fields: [planId], references: [id])
-  transactions       Transaction[]
+  notifications      Notification[]
   routines           Routine[]
+  transactions       Transaction[]
 }
 
 model Plan {
@@ -96,20 +97,6 @@ model Appointment {
   member   Member   @relation(fields: [memberId], references: [id])
 }
 
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  INSTRUCTOR
-  MIEMBRO
-  NUTRIOLOGO
-}
-
-enum MembershipStatus {
-  ACTIVO
-  VENCIDO
-  PENDIENTE
-}
-
 model Routine {
   id          String     @id @default(uuid())
   memberId    String
@@ -135,15 +122,40 @@ model Exercise {
 }
 
 model SystemSettings {
-  id               String  @id @default("default")
-  gymName          String  @default("GymMaster Pro")
-  aforoMaximo      Int     @default(50)
-  direccion        String?
-  horario          String?
-  wahaUrl          String?
-  wahaKey          String?
-  geminiKey        String?
-  ycloudKey        String? @map("ycloud_key")
-  pushEnabled      Boolean @default(true)
-  backupEnabled    Boolean @default(true)
+  id            String  @id @default("default")
+  gymName       String  @default("GymMaster Pro")
+  aforoMaximo   Int     @default(50)
+  direccion     String?
+  horario       String?
+  wahaUrl       String?
+  wahaKey       String?
+  geminiKey     String?
+  ycloudKey     String? @map("ycloud_key")
+  pushEnabled   Boolean @default(true)
+  backupEnabled Boolean @default(true)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  memberId  String?
+  tipo      String
+  mensaje   String
+  timestamp DateTime @default(now())
+  status    String   @default("sent")
+  read      Boolean  @default(false)
+  member    Member?  @relation(fields: [memberId], references: [id])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  INSTRUCTOR
+  MIEMBRO
+  NUTRIOLOGO
+}
+
+enum MembershipStatus {
+  ACTIVO
+  VENCIDO
+  PENDIENTE
 }

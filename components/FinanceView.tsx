@@ -8,7 +8,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
 import { GYM_PLANS } from '../constants';
-import { recordTransaction, fetchTransactions, fetchPlans } from '../services/apiService';
+import { recordTransaction, fetchTransactions, fetchPlans, createPlan, updatePlan, deletePlan } from '../services/apiService';
 import { generateReceiptPDF, generateFinanceReportPDF } from '../utils/pdfGenerator';
 
 interface FinanceViewProps {
@@ -21,6 +21,15 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [planForm, setPlanForm] = useState<Partial<Plan>>({
+    nombre: '',
+    costo: 0,
+    duracionMeses: 1,
+    beneficios: [],
+    color: 'bg-orange-500'
+  });
 
   React.useEffect(() => {
     loadData();
@@ -100,6 +109,36 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
     } catch (error) {
       console.error("Error processing payment:", error);
       alert("Error al procesar el pago.");
+    }
+  };
+
+  const handleSavePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingPlan) {
+        const updated = await updatePlan(editingPlan.id, planForm);
+        setPlans(plans.map(p => p.id === editingPlan.id ? updated : p));
+      } else {
+        const created = await createPlan(planForm);
+        setPlans([...plans, created]);
+      }
+      setIsPlanModalOpen(false);
+      setEditingPlan(null);
+      setPlanForm({ nombre: '', costo: 0, duracionMeses: 1, beneficios: [], color: 'bg-orange-500' });
+    } catch (error) {
+      console.error("Error saving plan:", error);
+      alert("Error al guardar el plan.");
+    }
+  };
+
+  const handleDeletePlanLocal = async (id: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este plan?")) return;
+    try {
+      await deletePlan(id);
+      setPlans(plans.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      alert("Error al eliminar el plan.");
     }
   };
 
@@ -327,14 +366,17 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
         <div className="space-y-6 animate-in zoom-in-95 duration-500">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold">Catálogo de Planes</h3>
-            <button className="text-orange-500 font-bold text-sm flex items-center gap-1 hover:underline">
+            <button 
+              onClick={() => { setEditingPlan(null); setPlanForm({ nombre: '', costo: 0, duracionMeses: 1, beneficios: [], color: 'bg-orange-500' }); setIsPlanModalOpen(true); }}
+              className="text-orange-500 font-bold text-sm flex items-center gap-1 hover:underline"
+            >
                <Plus size={16}/> Crear Nuevo Plan
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map(plan => (
               <div key={plan.id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm relative overflow-hidden flex flex-col group hover:shadow-2xl transition-all hover:-translate-y-2">
-                <div className={`absolute top-0 right-0 w-24 h-24 ${plan.color} opacity-10 rounded-bl-[80px]`}></div>
+                <div className={`absolute top-0 right-0 w-24 h-24 ${plan.color || 'bg-orange-500'} opacity-10 rounded-bl-[80px]`}></div>
                 <div className="mb-8">
                    <h4 className="text-2xl font-black text-gray-900 mb-2">{plan.nombre}</h4>
                    <div className="flex items-baseline gap-1">
@@ -343,19 +385,98 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
                    </div>
                 </div>
                 <div className="flex-1 space-y-4 mb-8">
-                  {plan.beneficios?.map((b, i) => (
+                   {plan.beneficios?.map((b, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm text-gray-600 font-medium">
                        <CheckCircle size={18} className="text-green-500" /> {b}
                     </div>
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <button className="flex-1 py-3 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-colors">Editar</button>
-                  <button className="p-3 border border-gray-200 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50"><Trash2 size={20}/></button>
+                  <button 
+                    onClick={() => { setEditingPlan(plan); setPlanForm(plan); setIsPlanModalOpen(true); }}
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => handleDeletePlanLocal(plan.id)}
+                    className="p-3 border border-gray-200 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50"
+                  >
+                    <Trash2 size={20}/>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Plan Modal */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
+              <div className="p-8 border-b flex justify-between items-center">
+                 <h2 className="text-2xl font-black text-gray-900">{editingPlan ? 'Editar Plan' : 'Nuevo Plan'}</h2>
+                 <button onClick={() => setIsPlanModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={24}/></button>
+              </div>
+              <form onSubmit={handleSavePlan} className="p-8 space-y-4">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nombre del Plan</label>
+                    <input 
+                      required
+                      className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-orange-500"
+                      value={planForm.nombre}
+                      onChange={(e) => setPlanForm({...planForm, nombre: e.target.value})}
+                      placeholder="Ej: Plan VIP Anual"
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Costo ($)</label>
+                        <input 
+                          type="number" required
+                          className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-orange-500"
+                          value={planForm.costo}
+                          onChange={(e) => setPlanForm({...planForm, costo: Number(e.target.value)})}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duración (Meses)</label>
+                        <input 
+                          type="number" required
+                          className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-orange-500"
+                          value={planForm.duracionMeses}
+                          onChange={(e) => setPlanForm({...planForm, duracionMeses: Number(e.target.value)})}
+                        />
+                    </div>
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Color del Plan</label>
+                    <div className="flex gap-2">
+                       {['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-rose-500'].map(c => (
+                         <button 
+                           key={c} type="button"
+                           onClick={() => setPlanForm({...planForm, color: c})}
+                           className={`w-8 h-8 rounded-full ${c} ${planForm.color === c ? 'ring-4 ring-offset-2 ring-gray-900 transition-all' : ''}`}
+                         />
+                       ))}
+                    </div>
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Beneficios (Uno por línea)</label>
+                    <textarea 
+                      rows={4}
+                      className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold focus:ring-2 focus:ring-orange-500 text-sm"
+                      value={planForm.beneficios?.join('\n')}
+                      onChange={(e) => setPlanForm({...planForm, beneficios: e.target.value.split('\n').filter(b => b.trim() !== '')})}
+                      placeholder="Acceso 24/7&#10;Área de Sauna&#10;Entrenador Personal"
+                    />
+                 </div>
+                 <button type="submit" className="w-full py-5 bg-orange-500 text-white rounded-3xl font-black text-lg hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20">
+                    Guardar Plan
+                 </button>
+              </form>
+           </div>
         </div>
       )}
 
