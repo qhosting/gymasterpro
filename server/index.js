@@ -253,7 +253,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
         
         res.status(201).json(result);
     } catch (error) {
-        console.error('Error creating member detail:', error);
+        console.error('SERVER ERROR [CREATE MEMBER]:', JSON.stringify(error, null, 2));
         if (error.code === 'P2002') {
             const target = error.meta?.target || [];
             const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
@@ -306,7 +306,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
         
         res.json(result);
     } catch (error) {
-        console.error('Error updating member:', error);
+        console.error('SERVER ERROR [UPDATE MEMBER]:', JSON.stringify(error, null, 2));
         if (error.code === 'P2002') {
             const target = error.meta?.target || [];
             const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));

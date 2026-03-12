@@ -13,14 +13,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const memberSchema = z.object({
-  nombre: z.string().min(3, 'Mínimo 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  telefono: z.string().min(10, 'Mínimo 10 dígitos'),
-  planId: z.string(),
+  nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+  email: z.string().email('Ingresa un correo electrónico válido'),
+  telefono: z.string().refine(val => val === '' || val.length >= 10, {
+    message: 'El teléfono debe tener al menos 10 dígitos o quedar vacío'
+  }).optional(),
+  planId: z.string().min(1, 'Debes seleccionar un plan de entrenamiento'),
   objetivo: z.string().optional(),
   contactoEmergencia: z.string().optional(),
   telefonoEmergencia: z.string().optional(),
-  password: z.string().min(6, 'Mínimo 6 caracteres').optional(),
+  password: z.string().refine(val => val === '' || val.length >= 6, {
+    message: 'La contraseña debe tener al menos 6 caracteres'
+  }).optional(),
 });
 
 type MemberFormData = z.infer<typeof memberSchema>;
@@ -52,12 +56,13 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const loadPlans = async () => {
     try {
       const data = await fetchPlans();
-      setAvailablePlans(data);
-      if (data.length > 0 && !isEditMode) {
+      setAvailablePlans(data || []);
+      if (data && data.length > 0 && !isEditMode) {
         setValue('planId', data[0].id);
       }
     } catch (error) {
       console.error("Error loading plans:", error);
+      setAvailablePlans([]);
     }
   };
 
