@@ -255,9 +255,16 @@ app.post('/api/members', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('SERVER ERROR [CREATE MEMBER]:', JSON.stringify(error, null, 2));
         if (error.code === 'P2002') {
-            const target = error.meta?.target || [];
-            const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
-            const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
+            const getFields = (err) => {
+                if (err.meta?.target) return Array.isArray(err.meta.target) ? err.meta.target : [err.meta.target];
+                const driverFields = err.meta?.driverAdapterError?.cause?.constraint?.fields;
+                if (driverFields) return Array.isArray(driverFields) ? driverFields : [driverFields];
+                return [];
+            };
+            
+            const fields = getFields(error);
+            const isEmail = fields.some(f => f.includes('email'));
+            const isPhone = fields.some(f => f.includes('telefono'));
             
             let msg = 'Ya existe un registro con esos datos.';
             if (isEmail) msg = `El correo "${data.email.toLowerCase()}" ya pertenece a otro socio.`;
@@ -329,9 +336,16 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('SERVER ERROR [UPDATE MEMBER]:', JSON.stringify(error, null, 2));
         if (error.code === 'P2002') {
-            const target = error.meta?.target || [];
-            const isEmail = target.includes('email') || (typeof target === 'string' && target.includes('email'));
-            const isPhone = target.includes('telefono') || (typeof target === 'string' && target.includes('telefono'));
+            const getFields = (err) => {
+                if (err.meta?.target) return Array.isArray(err.meta.target) ? err.meta.target : [err.meta.target];
+                const driverFields = err.meta?.driverAdapterError?.cause?.constraint?.fields;
+                if (driverFields) return Array.isArray(driverFields) ? driverFields : [driverFields];
+                return [];
+            };
+
+            const fields = getFields(error);
+            const isEmail = fields.some(f => f.includes('email'));
+            const isPhone = fields.some(f => f.includes('telefono'));
             
             let msg = 'Los nuevos datos ya pertenecen a otro socio.';
             if (isEmail) msg = `El correo "${data.email.toLowerCase()}" ya pertenece a otro socio.`;
