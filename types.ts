@@ -135,4 +135,6 @@ export interface SystemSettings {
   openpaySandbox: boolean;
   pushEnabled: boolean;
   backupEnabled: boolean;
+  primaryColor: string;
+  darkMode: boolean;
 }

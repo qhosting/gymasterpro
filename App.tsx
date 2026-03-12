@@ -12,7 +12,8 @@ import {
   Dumbbell,
   Settings,
   ChevronRight,
-  Loader2
+  Loader2,
+  WifiOff
 } from 'lucide-react';
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
@@ -28,7 +29,8 @@ import NutritionView from './components/NutritionView';
 import TrainingView from './components/TrainingView';
 import MemberProfile from './components/MemberProfile';
 import Login from './components/Login';
-import { fetchMembers, getMe, logout, fetchNotifications } from './services/apiService';
+import { fetchMembers, getMe, logout, fetchNotifications, fetchSystemSettings } from './services/apiService';
+import { SystemSettings as SystemSettingsType } from './types';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -40,6 +42,8 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationLog[]>([]);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsType | null>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -74,6 +78,19 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       const loadData = async () => {
         try {
@@ -89,6 +106,34 @@ const App: React.FC = () => {
       };
       loadData();
     }
+  }, [isAuthenticated]);
+
+  const loadSystemSettings = async () => {
+    try {
+      const data = await fetchSystemSettings();
+      if (data) {
+        setSystemSettings(data);
+        // Apply Theme
+        if (data.darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        
+        if (data.primaryColor) {
+          document.documentElement.style.setProperty('--primary-color', data.primaryColor);
+          // Simple logic for hover (darken by 10% approx)
+          document.documentElement.style.setProperty('--primary-color-hover', data.primaryColor + 'cc'); 
+          document.documentElement.style.setProperty('--primary-color-shadow', data.primaryColor + '33');
+        }
+      }
+    } catch (error) {
+      console.error("Error loading system settings:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadSystemSettings();
   }, [isAuthenticated]);
 
   // Filter menu items by role
@@ -115,7 +160,7 @@ const App: React.FC = () => {
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
       case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} />;
-      case 'settings': return <SettingsView currentUser={currentUser} />;
+      case 'settings': return <SettingsView currentUser={currentUser} onSettingsUpdate={loadSystemSettings} />;
       default: return <Dashboard members={members} currentUser={currentUser} />;
     }
   };
@@ -124,6 +169,10 @@ const App: React.FC = () => {
     logout();
     setIsAuthenticated(false);
     setCurrentUser(null);
+  };
+
+  const handleLogoutWrapper = () => {
+    handleLogout();
   };
 
   if (isLoadingAuth) {
@@ -209,6 +258,21 @@ const App: React.FC = () => {
              </select>
           </div>
 
+
+          {isOffline && (
+            <div className={`mx-2 mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-3 animate-pulse ${!isSidebarOpen && 'justify-center'}`}>
+              <div className="p-2 bg-rose-500 text-white rounded-xl">
+                <WifiOff size={16} />
+              </div>
+              {isSidebarOpen && (
+                <div>
+                  <p className="text-[10px] font-black uppercase text-rose-400 tracking-widest">Modo Offline</p>
+                  <p className="text-[8px] text-rose-300 font-medium leading-tight">Datos locales activos</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 p-2 rounded-2xl hover:bg-gray-800 cursor-pointer transition-all group">
             <div className="relative">
               <img src={currentUser.foto} alt="profile" className="w-10 h-10 rounded-xl object-cover border-2 border-orange-500 shadow-lg" />
@@ -220,7 +284,7 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-orange-500 font-black uppercase tracking-tighter truncate">{currentUser?.role.replace('_', ' ')}</p>
               </div>
             )}
-            {isSidebarOpen && <LogOut size={18} onClick={handleLogout} className="text-gray-500 group-hover:text-red-400 transition-colors" />}
+            {isSidebarOpen && <LogOut size={18} onClick={handleLogoutWrapper} className="text-gray-500 group-hover:text-red-400 transition-colors" />}
           </div>
         </div>
       </aside>
@@ -241,7 +305,7 @@ const App: React.FC = () => {
           
           <div className="flex items-center gap-2 sm:gap-6">
             <button 
-               onClick={handleLogout}
+               onClick={handleLogoutWrapper}
                className="lg:hidden p-3 text-gray-400 hover:text-red-500 transition-colors"
             >
                <LogOut size={20} />
@@ -280,7 +344,7 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-gray-400 font-bold mt-1">ID: {currentUser?.id}</p>
               </div>
               <button 
-                onClick={handleLogout}
+                onClick={handleLogoutWrapper}
                 className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-black shadow-lg shadow-gray-900/10 active:scale-95 transition-all"
               >
                 <LogOut size={20} />

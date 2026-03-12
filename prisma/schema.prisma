@@ -137,6 +137,8 @@ model SystemSettings {
   openpaySandbox   Boolean @default(true)
   pushEnabled   Boolean @default(true)
   backupEnabled Boolean @default(true)
+  primaryColor  String  @default("#f97316") // default orange-500
+  darkMode      Boolean @default(false)
 }
 
 model Notification {

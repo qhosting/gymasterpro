@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Shield, Smartphone, Globe, Clock, Users, 
   Save, Database, Palette, Lock, Bell, Mail, 
-  MapPin, Camera, Trash2, Edit3, UserPlus, Key,
+  MapPin, Camera, Trash2, Edit3, UserPlus, Key, CreditCard,
   Zap, Info, Cloud, Download, Apple, Layout, MessageSquare
 } from 'lucide-react';
 import { User, UserRole } from '../types';
@@ -11,9 +11,10 @@ import { fetchSystemSettings, updateSystemSettings, fetchStaff } from '../servic
 
 interface SettingsViewProps {
   currentUser: User;
+  onSettingsUpdate?: () => void | Promise<void>;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onSettingsUpdate }) => {
   const [activeSection, setActiveSection] = useState<'general' | 'personal' | 'integraciones' | 'seguridad' | 'movil'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -31,7 +32,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     openpayPrivateKey: '',
     openpaySandbox: true,
     pushEnabled: true,
-    backupEnabled: true
+    backupEnabled: true,
+    primaryColor: '#f97316',
+    darkMode: false
   });
 
   useEffect(() => {
@@ -78,6 +81,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     setIsSaving(true);
     try {
       await updateSystemSettings(settings);
+      if (onSettingsUpdate) onSettingsUpdate();
       alert('Configuración guardada exitosamente');
     } catch (error) {
       alert('Error al guardar la configuración');
@@ -188,6 +192,65 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                       value={settings.horario}
                       onChange={(e) => setSettings({ ...settings, horario: e.target.value })}
                     />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-50">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Palette size={20} className="text-orange-500" />
+                    <h3 className="text-lg font-bold">Personalización Visual</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Color de Marca (Botones y Acentos)</label>
+                       <div className="flex gap-4 items-center">
+                         <input 
+                           type="color"
+                           className="w-12 h-12 rounded-xl border-none p-1 bg-gray-50 cursor-pointer"
+                           value={settings.primaryColor}
+                           onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                         />
+                         <input 
+                            className="flex-1 p-3 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm uppercase"
+                            value={settings.primaryColor}
+                            onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                         />
+                       </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        {settings.darkMode ? <Zap className="text-yellow-500" /> : <Clock className="text-gray-400" />}
+                        <div>
+                          <p className="font-bold text-sm">Modo Oscuro Permanente</p>
+                          <p className="text-[10px] text-gray-400">Aplica una estética nocturna a toda la interfaz.</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={settings.darkMode}
+                          onChange={(e) => setSettings({...settings, darkMode: e.target.checked})}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Vista Previa de Marca</label>
+                  <div className="p-8 rounded-[30px] border border-gray-100 bg-white shadow-inner flex flex-col items-center justify-center gap-4">
+                     <div 
+                       className="w-20 h-20 rounded-2xl flex items-center justify-center text-white shadow-lg animate-pulse"
+                       style={{ backgroundColor: settings.primaryColor }}
+                     >
+                       <Layout size={32} />
+                     </div>
+                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">Color Actual: {settings.primaryColor}</p>
                   </div>
                 </div>
               </div>

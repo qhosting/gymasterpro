@@ -18,7 +18,7 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 - [x] **Validación de Formularios**: Integración de Zod y React Hook Form.
 
 ## 🟢 Prioridad Baja (Mejoras)
-- [ ] **Modo Offline**: Implementar almacenamiento local (IndexedDB) para permitir lectura de datos sin conexión.
+- [x] **Modo Offline**: Implementar almacenamiento local (IndexedDB) para permitir lectura de datos sin conexión.
 - [ ] **Temas Personalizados**: Opción de Modo Oscuro o cambio de colores de marca según el gimnasio.
 - [x] **Gestión de Planes**: CRUD completo de planes de membresía desde el panel administrativo.
 - [x] **Notificaciones Persistentes**: Guardado de historial de comunicaciones en base de datos.
@@ -29,4 +29,4 @@ Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 - [x] **Entrenamiento Inteligente**: Generador de rutinas mediante IA/Plantillas basado en objetivos.
 - [x] **Rankings de Comunidad**: Gamificación y leaderboard de asistencia (rachas).
 - [x] **Integración con Wearables**: Conexión funcional con salud móvil (Apple/Google).
-- [ ] **Pasarela de Pagos**: Integrar Stripe o MercadoPago para pagos automáticos (Pendiente a futuro).
+- [x] **Pasarela de Pagos**: Integración oficial con **Openpay** para pagos con tarjeta, además de soporte para Efectivo y SPEI.

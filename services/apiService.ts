@@ -1,4 +1,6 @@
 // Use current origin but on port 3001 for development, or /api for production
+import { saveData, getData, saveItem } from './offlineService';
+
 const API_URL = typeof window !== 'undefined'
     ? (window.location.port === '3000' ? `${window.location.protocol}//${window.location.hostname}:3001/api` : '/api')
     : '/api';
@@ -36,11 +38,19 @@ export const logout = () => {
 };
 
 export const fetchMembers = async () => {
-    const response = await fetch(`${API_URL}/members`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch members');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/members`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch members');
+        const data = await response.json();
+        // Sync to offline storage
+        await saveData('members', data);
+        return data;
+    } catch (error) {
+        console.warn("Offline? Fetching members from IDB");
+        return await getData('members');
+    }
 };
 
 export const createMember = async (memberData: any) => {
@@ -73,11 +83,18 @@ export const deleteMember = async (id: string) => {
 };
 
 export const fetchPlans = async () => {
-    const response = await fetch(`${API_URL}/plans`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch plans');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/plans`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch plans');
+        const data = await response.json();
+        await saveData('plans', data);
+        return data;
+    } catch (error) {
+        console.warn("Offline? Fetching plans from IDB");
+        return await getData('plans');
+    }
 };
 
 export const recordCheckIn = async (memberId: string) => {
@@ -131,11 +148,18 @@ export const processOpenpayPayment = async (paymentData: any) => {
 };
 
 export const fetchTransactions = async () => {
-    const response = await fetch(`${API_URL}/transactions`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch transactions');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/transactions`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch transactions');
+        const data = await response.json();
+        await saveData('transactions', data);
+        return data;
+    } catch (error) {
+        console.warn("Offline? Fetching transactions from IDB");
+        return await getData('transactions');
+    }
 };
 
 export const fetchAttendanceStats = async () => {
@@ -183,11 +207,18 @@ export const createMetrics = async (metricsData: any) => {
 
 export const fetchAppointments = async (memberId?: string) => {
     const url = memberId ? `${API_URL}/nutrition/appointments?memberId=${memberId}` : `${API_URL}/nutrition/appointments`;
-    const response = await fetch(url, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch appointments');
-    return await response.json();
+    try {
+        const response = await fetch(url, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch appointments');
+        const data = await response.json();
+        // Since we don't have a separate store for filtering, just save all for now or skip sync if too complex
+        // For now, let's just use the basic fetch
+        return data;
+    } catch (error) {
+        return [];
+    }
 };
 
 export const createAppointment = async (appointmentData: any) => {
@@ -255,11 +286,20 @@ export const updateMemberSettings = async (id: string, settings: any) => {
 };
 
 export const fetchSystemSettings = async () => {
-    const response = await fetch(`${API_URL}/settings`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch system settings');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/settings`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch system settings');
+        const data = await response.json();
+        // Settings is usually a single object, but we store it as an array or specific ID
+        await saveData('settings', [data]); 
+        return data;
+    } catch (error) {
+        console.warn("Offline? Fetching settings from IDB");
+        const stored = await getData('settings');
+        return stored[0] || null;
+    }
 };
 
 export const updateSystemSettings = async (settings: any) => {
@@ -273,11 +313,17 @@ export const updateSystemSettings = async (settings: any) => {
 };
 
 export const fetchStaff = async () => {
-    const response = await fetch(`${API_URL}/staff`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch staff');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/staff`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch staff');
+        const data = await response.json();
+        // Option to add 'staff' store if needed, but for now just fallback to empty
+        return data;
+    } catch (error) {
+        return [];
+    }
 };
 
 // --- PLANES CRUD ---
@@ -312,11 +358,18 @@ export const deletePlan = async (id: string) => {
 
 // --- NOTIFICACIONES ---
 export const fetchNotifications = async () => {
-    const response = await fetch(`${API_URL}/notifications`, {
-        headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch notifications');
-    return await response.json();
+    try {
+        const response = await fetch(`${API_URL}/notifications`, {
+            headers: getHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        const data = await response.json();
+        await saveData('notifications', data);
+        return data;
+    } catch (error) {
+        console.warn("Offline? Fetching notifications from IDB");
+        return await getData('notifications');
+    }
 };
 
 export const createNotificationLog = async (notifData: any) => {

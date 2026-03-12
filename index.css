@@ -1,0 +1,49 @@
+:root {
+  --primary-color: #f97316; /* Color primario dinámico */
+  --primary-color-hover: #ea580c;
+  --primary-color-shadow: rgba(249, 115, 22, 0.2);
+}
+
+.dark {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+}
+
+/* Mapeo de Tailwind hacia variables dinámicas */
+.bg-orange-500 { background-color: var(--primary-color) !important; }
+.text-orange-500 { color: var(--primary-color) !important; }
+.border-orange-500 { border-color: var(--primary-color) !important; }
+.shadow-orange-500\/20 { --tw-shadow-color: var(--primary-color-shadow) !important; }
+.hover\:bg-orange-600:hover { background-color: var(--primary-color-hover) !important; }
+.focus\:ring-orange-500:focus { --tw-ring-color: var(--primary-color) !important; }
+.selection\:bg-orange-500::selection { background-color: var(--primary-color) !important; }
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Clases de utilidad para el color primario dinámico */
+.bg-primary { background-color: var(--primary-color) !important; }
+.text-primary { color: var(--primary-color) !important; }
+.border-primary { border-color: var(--primary-color) !important; }
+.ring-primary { --tw-ring-color: var(--primary-color) !important; }
+
+/* Adaptaciones para Modo Oscuro mediante filtros y clases directas si es necesario */
+.dark body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+.dark .bg-white { background-color: var(--bg-card) !important; }
+.dark .text-gray-900 { color: var(--text-main) !important; }
+.dark .text-gray-600, .dark .text-gray-500 { color: var(--text-muted) !important; }
+.dark .border-gray-100, .dark .border-gray-200 { border-color: var(--border-color) !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
+
+/* Scrollbars para modo oscuro */
+.dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
