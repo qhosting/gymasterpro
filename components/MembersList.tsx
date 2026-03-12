@@ -592,40 +592,40 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-lg animate-in fade-in duration-300 p-0 sm:p-4">
           <div className="bg-white w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden sm:rounded-[50px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row border border-white/20">
             {/* Camera / Photo Section */}
-            <div className="md:w-5/12 bg-gray-900 p-8 sm:p-12 flex flex-col items-center justify-center space-y-6 sm:space-y-10 relative">
+            <div className="md:w-4/12 bg-gray-900 p-8 flex flex-col items-center justify-center space-y-6 relative border-r border-white/5">
                <div className="text-center">
-                 <h3 className="text-2xl font-black text-white tracking-tight">Registro Facial</h3>
-                 <p className="text-gray-500 text-sm mt-2">Captura la identidad del nuevo socio.</p>
+                 <h3 className="text-xl font-black text-white tracking-tight">Registro Facial</h3>
+                 <p className="text-gray-500 text-xs mt-1">Identidad del socio.</p>
                </div>
                
-               <div className="relative w-full aspect-square bg-gray-800 rounded-[60px] overflow-hidden border-8 border-white/5 shadow-2xl flex items-center justify-center group">
+               <div className="relative w-full aspect-[4/5] bg-gray-800 rounded-[40px] overflow-hidden border-4 border-white/5 shadow-2xl flex items-center justify-center group">
                   {isCameraActive ? (
                     <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" />
                   ) : capturedImage ? (
                     <img src={capturedImage} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <User size={80} className="text-gray-700 group-hover:text-gray-600 transition-colors" />
+                    <User size={60} className="text-gray-700 group-hover:text-gray-600 transition-colors" />
                   )}
                   <canvas ref={canvasRef} className="hidden" />
                   
                   {isCameraActive && (
-                    <div className="absolute inset-0 border-[30px] border-black/20 pointer-events-none">
-                       <div className="absolute top-1/2 left-0 w-full h-1 bg-orange-500 animate-scan shadow-[0_0_20px_rgba(249,115,22,1)]" />
+                    <div className="absolute inset-0 border-[20px] border-black/20 pointer-events-none">
+                       <div className="absolute top-1/2 left-0 w-full h-0.5 bg-orange-500 animate-scan shadow-[0_0_15px_rgba(249,115,22,1)]" />
                     </div>
                   )}
                </div>
 
-                <div className="flex flex-col gap-4 w-full">
+                <div className="flex flex-col gap-3 w-full">
                   {!isCameraActive ? (
-                    <div className="flex gap-4">
+                    <div className="grid grid-cols-1 gap-3">
                       <button 
                         onClick={startCamera}
-                        className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
+                        className="py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
                       >
-                        <Camera size={22} /> {capturedImage ? 'Recapturar' : 'Iniciar Cámara'}
+                        <Camera size={18} /> {capturedImage ? 'Recapturar' : 'Cámara'}
                       </button>
-                      <label className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all cursor-pointer">
-                        <Plus size={22} /> Subir Foto
+                      <label className="py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all cursor-pointer">
+                        <Plus size={18} /> Subir Foto
                         <input 
                           type="file" 
                           hidden 
@@ -643,18 +643,18 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                   ) : (
                     <button 
                       onClick={capturePhoto}
-                      className="flex-1 py-5 bg-orange-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all active:scale-95"
+                      className="py-4 bg-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all active:scale-95"
                     >
-                      <Check size={22} /> Validar Identidad
+                      <Check size={18} /> Validar Rostro
                     </button>
                   )}
                 </div>
                
-               <Dumbbell size={150} className="absolute -bottom-10 -left-10 text-white/5 -rotate-12" />
+               <Dumbbell size={100} className="absolute -bottom-6 -left-6 text-white/5 -rotate-12" />
             </div>
 
             {/* Form Section */}
-            <div className="md:w-7/12 p-8 sm:p-12 overflow-y-auto bg-white custom-scrollbar">
+            <div className="md:w-8/12 p-8 sm:p-12 overflow-y-auto bg-white custom-scrollbar">
               <div className="flex justify-between items-center mb-6 sm:mb-10">
                 <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter">Inscripción</h2>
                 <button onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} className="p-3 hover:bg-gray-100 rounded-3xl transition-all"><X size={28}/></button>
