@@ -151,22 +151,24 @@ const NutritionView: React.FC<NutritionViewProps> = ({ members, currentUser }) =
           <h1 className="text-3xl font-black tracking-tight text-gray-900">Módulo de Nutrición</h1>
           <p className="text-gray-500 font-medium">Seguimiento antropométrico y agenda de citas nutricionales.</p>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setIsScheduling(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-50 transition-all shadow-sm"
-          >
-            <Calendar size={20} className="text-orange-500" />
-            Agendar Cita
-          </button>
-          <button 
-            onClick={() => setIsAddingMetrics(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95"
-          >
-            <Plus size={20} />
-            Registrar Medidas
-          </button>
-        </div>
+        {!isMember && (
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setIsScheduling(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-50 transition-all shadow-sm"
+            >
+              <Calendar size={20} className="text-orange-500" />
+              Agendar Cita
+            </button>
+            <button 
+              onClick={() => setIsAddingMetrics(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95"
+            >
+              <Plus size={20} />
+              Registrar Medidas
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Member Selector - Hidden for Members */}
