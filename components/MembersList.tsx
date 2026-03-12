@@ -632,43 +632,52 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
 
       {/* Add Member Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-lg animate-in fade-in duration-300 p-0 sm:p-4">
-          <div className="bg-white w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden sm:rounded-[50px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row border border-white/20">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-300 p-0 sm:p-4">
+          <div className="bg-white w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] overflow-hidden sm:rounded-[50px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col md:flex-row border border-white/20 relative">
+            
+            {/* Mobile Close Button (Floating) */}
+            <button 
+              onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} 
+              className="md:hidden absolute top-4 right-4 z-[210] p-3 bg-white/20 backdrop-blur-xl text-white rounded-2xl border border-white/20 active:scale-95 transition-all"
+            >
+              <X size={24}/>
+            </button>
+
             {/* Camera / Photo Section */}
-            <div className="md:w-4/12 bg-gray-900 p-8 flex flex-col items-center justify-center space-y-6 relative border-r border-white/5">
-               <div className="text-center">
-                 <h3 className="text-xl font-black text-white tracking-tight">Registro Facial</h3>
-                 <p className="text-gray-500 text-xs mt-1">Identidad del socio.</p>
+            <div className="w-full md:w-4/12 bg-gray-950 p-6 sm:p-10 flex flex-col items-center justify-center space-y-4 sm:space-y-6 relative border-b md:border-b-0 md:border-r border-white/5">
+               <div className="text-center md:mb-4">
+                 <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">Registro Facial</h3>
+                 <p className="text-gray-500 text-[10px] sm:text-xs mt-1">Sincroniza la identidad del socio.</p>
                </div>
                
-               <div className="relative w-full aspect-[4/5] bg-gray-800 rounded-[40px] overflow-hidden border-4 border-white/5 shadow-2xl flex items-center justify-center group">
+               <div className="relative w-32 sm:w-full aspect-square sm:aspect-[4/5] bg-gray-900 rounded-[30px] sm:rounded-[40px] overflow-hidden border-4 border-white/5 shadow-2xl flex items-center justify-center group shrink-0">
                   {isCameraActive ? (
                     <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" />
                   ) : capturedImage ? (
                     <img src={capturedImage} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <User size={60} className="text-gray-700 group-hover:text-gray-600 transition-colors" />
+                    <User size={50} className="text-gray-800" />
                   )}
                   <canvas ref={canvasRef} className="hidden" />
                   
                   {isCameraActive && (
-                    <div className="absolute inset-0 border-[20px] border-black/20 pointer-events-none">
+                    <div className="absolute inset-0 border-[15px] sm:border-[20px] border-black/20 pointer-events-none">
                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-orange-500 animate-scan shadow-[0_0_15px_rgba(249,115,22,1)]" />
                     </div>
                   )}
                </div>
 
-                <div className="flex flex-col gap-3 w-full">
+                <div className="flex gap-3 w-full">
                   {!isCameraActive ? (
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-1 gap-2 sm:gap-3 w-full">
                       <button 
                         onClick={startCamera}
-                        className="py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
+                        className="py-3 sm:py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all border-dashed"
                       >
-                        <Camera size={18} /> {capturedImage ? 'Recapturar' : 'Cámara'}
+                        <Camera size={16} /> {capturedImage ? 'Recapturar' : 'Cámara'}
                       </button>
-                      <label className="py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all cursor-pointer">
-                        <Plus size={18} /> Subir Foto
+                      <label className="py-3 sm:py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all cursor-pointer">
+                        <Plus size={16} /> Subir
                         <input 
                           type="file" 
                           hidden 
@@ -686,113 +695,132 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                   ) : (
                     <button 
                       onClick={capturePhoto}
-                      className="py-4 bg-orange-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all active:scale-95"
+                      className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl shadow-orange-500/40 hover:bg-orange-600 transition-all active:scale-95"
                     >
-                      <Check size={18} /> Validar Rostro
+                      <Check size={20} /> Capturar Rostro
                     </button>
                   )}
                 </div>
                
-               <Dumbbell size={100} className="absolute -bottom-6 -left-6 text-white/5 -rotate-12" />
+               <Dumbbell size={80} className="hidden md:block absolute -bottom-6 -left-6 text-white/5 -rotate-12" />
             </div>
 
             {/* Form Section */}
-            <div className="md:w-8/12 p-8 sm:p-12 overflow-y-auto bg-white custom-scrollbar">
-              <div className="flex justify-between items-center mb-6 sm:mb-10">
-                <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter">Inscripción</h2>
-                <button onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} className="p-3 hover:bg-gray-100 rounded-3xl transition-all"><X size={28}/></button>
+            <div className="flex-1 p-6 sm:p-12 overflow-y-auto bg-white custom-scrollbar pb-32 md:pb-12">
+              <div className="hidden md:flex justify-between items-center mb-10">
+                <h2 className="text-4xl font-black text-gray-900 tracking-tighter">{isEditMode ? 'Editar Socio' : 'Hacer Inscripción'}</h2>
+                <button onClick={() => { setIsModalOpen(false); stopCamera(); reset(); setCapturedImage(null); }} className="p-3 hover:bg-gray-100 rounded-3xl transition-all active:scale-90"><X size={28}/></button>
+              </div>
+
+              <div className="md:hidden mb-8">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{isEditMode ? 'Editar Socio' : 'Inscripción'}</h2>
+                <p className="text-gray-400 text-sm font-medium">Completa los datos del expediente.</p>
               </div>
               
-              <form onSubmit={handleSubmit(handleSubmitMember)} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nombre del Socio</label>
-                    <input 
-                      {...register('nombre')}
-                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.nombre ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
-                      placeholder="Ej: Juan Pérez"
-                    />
-                    {errors.nombre && <p className="text-[10px] text-red-500 font-bold">{errors.nombre.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correo Electrónico</label>
-                    <input 
-                      {...register('email')}
-                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.email ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
-                      placeholder="email@ejemplo.com"
-                    />
-                    {errors.email && <p className="text-[10px] text-red-500 font-bold">{errors.email.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">WhatsApp (Con Lada)</label>
-                    <input 
-                      {...register('telefono')}
-                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.telefono ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
-                      placeholder="52155..."
-                    />
-                    {errors.telefono && <p className="text-[10px] text-red-500 font-bold">{errors.telefono.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contraseña de acceso</label>
-                    <input 
-                      {...register('password')}
-                      type="password"
-                      className={`w-full p-4 bg-gray-50 border-2 rounded-2xl outline-none font-bold transition-all ${errors.password ? 'border-red-500' : 'border-transparent focus:border-orange-500'}`}
-                      placeholder="••••••••"
-                    />
-                    {errors.password && <p className="text-[10px] text-red-500 font-bold">{errors.password.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selección de Plan</label>
+              <form onSubmit={handleSubmit(handleSubmitMember)} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                  <input 
+                    {...register('nombre')}
+                    className={`w-full p-4 sm:p-5 bg-gray-50 border-2 rounded-2xl outline-none font-bold text-base transition-all ${errors.nombre ? 'border-red-500' : 'border-transparent focus:border-orange-500 focus:bg-white'}`}
+                    placeholder="Ej: Juan Pérez"
+                  />
+                  {errors.nombre && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.nombre.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label>
+                  <input 
+                    {...register('email')}
+                    type="email"
+                    className={`w-full p-4 sm:p-5 bg-gray-50 border-2 rounded-2xl outline-none font-bold text-base transition-all ${errors.email ? 'border-red-500' : 'border-transparent focus:border-orange-500 focus:bg-white'}`}
+                    placeholder="email@ejemplo.com"
+                  />
+                  {errors.email && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.email.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp / Celular</label>
+                  <input 
+                    {...register('telefono')}
+                    type="tel"
+                    className={`w-full p-4 sm:p-5 bg-gray-50 border-2 rounded-2xl outline-none font-bold text-base transition-all ${errors.telefono ? 'border-red-500' : 'border-transparent focus:border-orange-500 focus:bg-white'}`}
+                    placeholder="52155..."
+                  />
+                  {errors.telefono && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.telefono.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña</label>
+                  <input 
+                    {...register('password')}
+                    type="password"
+                    autoComplete="new-password"
+                    className={`w-full p-4 sm:p-5 bg-gray-50 border-2 rounded-2xl outline-none font-bold text-base transition-all ${errors.password ? 'border-red-500' : 'border-transparent focus:border-orange-500 focus:bg-white'}`}
+                    placeholder="••••••••"
+                  />
+                  {errors.password && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.password.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Plan de Entrenamiento</label>
+                  <div className="relative">
+                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <select 
                       {...register('planId')}
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all cursor-pointer"
+                      className="w-full pl-12 pr-4 p-4 sm:p-5 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold text-sm transition-all appearance-none cursor-pointer"
                     >
                       <option value="1">Plan Básico (Mensual)</option>
                       <option value="2">Plan Premium (Trimestral)</option>
                       <option value="3">Plan Anual (VIP)</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Meta de Entrenamiento</label>
-                    <select 
-                      {...register('objetivo')}
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold transition-all"
-                    >
-                      <option>Pérdida de peso</option>
-                      <option>Ganancia muscular</option>
-                      <option>Resistencia / Cardio</option>
-                      <option>Mantenimiento</option>
-                      <option>Preparación Competencia</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div className="p-8 bg-orange-50 rounded-[40px] border border-orange-100 space-y-6">
-                   <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-2">
-                     <ShieldAlert size={16}/> Información de Respaldo
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Objetivo del Socio</label>
+                  <select 
+                    {...register('objetivo')}
+                    className="w-full p-4 sm:p-5 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold text-sm transition-all cursor-pointer"
+                  >
+                    <option>Pérdida de peso</option>
+                    <option>Ganancia muscular</option>
+                    <option>Resistencia / Cardio</option>
+                    <option>Mantenimiento</option>
+                    <option>Preparación Competencia</option>
+                  </select>
+                </div>
+
+                {/* Respaldo Section */}
+                <div className="md:col-span-2 p-6 sm:p-8 bg-orange-50 rounded-[40px] border border-orange-100 space-y-6 mt-4">
+                   <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-2 mb-2">
+                     <ShieldAlert size={16}/> Contacto de Emergencia
                    </h4>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <input 
                         {...register('contactoEmergencia')}
-                        placeholder="Nombre de contacto"
-                        className="w-full p-4 bg-white border-none rounded-2xl outline-none font-bold shadow-sm"
+                        placeholder="Nombre completo del contacto"
+                        className="w-full p-4 bg-white border-2 border-transparent rounded-2xl outline-none font-bold text-base focus:border-orange-200 transition-all shadow-sm"
                       />
                       <input 
                         {...register('telefonoEmergencia')}
-                        placeholder="Teléfono de contacto"
-                        className="w-full p-4 bg-white border-none rounded-2xl outline-none font-bold shadow-sm"
+                        type="tel"
+                        placeholder="Teléfono de emergencia"
+                        className="w-full p-4 bg-white border-2 border-transparent rounded-2xl outline-none font-bold text-base focus:border-orange-200 transition-all shadow-sm"
                       />
                    </div>
                 </div>
 
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-6 bg-gray-900 text-white rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-black shadow-[0_20px_50px_-10px_rgba(0,0,0,0.3)] transition-all transform active:scale-95 flex items-center justify-center gap-4 disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="animate-spin" /> : <>{isEditMode ? 'Guardar Cambios' : 'Finalizar Alta de Socio'} <ChevronRight size={24}/></>}
-                </button>
+                {/* Sticky Action Button (Bottom) */}
+                <div className="md:col-span-2 mt-4">
+                  <button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-5 sm:py-6 bg-gray-900 text-white rounded-[30px] font-black text-sm sm:text-lg uppercase tracking-widest hover:bg-black shadow-[0_20px_50px_-10px_rgba(0,0,0,0.3)] transition-all transform active:scale-95 flex items-center justify-center gap-4 disabled:opacity-50"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" /> : <>{isEditMode ? 'Guardar Cambios' : 'Confirmar Inscripción'} <ChevronRight size={24}/></>}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
