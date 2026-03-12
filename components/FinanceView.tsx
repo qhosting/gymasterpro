@@ -8,8 +8,9 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Member, MembershipStatus, Plan, Transaction, NutritionAppointment } from '../types';
 import { GYM_PLANS } from '../constants';
-import { recordTransaction, fetchTransactions, fetchPlans, createPlan, updatePlan, deletePlan } from '../services/apiService';
+import { recordTransaction, fetchTransactions, fetchPlans, createPlan, updatePlan, deletePlan, fetchSystemSettings, processOpenpayPayment } from '../services/apiService';
 import { generateReceiptPDF, generateFinanceReportPDF } from '../utils/pdfGenerator';
+import { Loader2 } from 'lucide-react';
 
 interface FinanceViewProps {
   members: Member[];
@@ -59,6 +60,15 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
     nutritionTime: ''
   });
 
+  const [cardData, setCardData] = useState({
+    holder: '',
+    number: '',
+    expiry: '',
+    cvv: ''
+  });
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const totalRecaudado = transactions
     .filter(t => t.status === 'Completado')
     .reduce((acc, t) => acc + t.monto, 0);
@@ -74,20 +84,65 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   ];
 
   const handleProcessPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const transactionData = {
-        memberId: paymentData.memberId,
-        monto: paymentData.amount,
-        metodo: paymentData.method,
-        tipo: paymentData.type,
-        status: 'Completado'
-      };
-
-      const savedTx = await recordTransaction(transactionData);
-      setTransactions([savedTx, ...transactions]);
+      setIsProcessing(true);
       
-      // Update member debt locally if it was a membership payment
+      let finalTx;
+
+      if (paymentData.method === 'Openpay') {
+        // Openpay Tokenization
+        const settings = await fetchSystemSettings();
+        if (!settings.openpayMerchantId || !settings.openpayPublicKey) {
+          throw new Error('Openpay no está configurado en los ajustes del sistema.');
+        }
+
+        // @ts-ignore
+        Openpay.setId(settings.openpayMerchantId);
+        // @ts-ignore
+        Openpay.setApiKey(settings.openpayPublicKey);
+        // @ts-ignore
+        Openpay.setSandboxMode(settings.openpaySandbox);
+
+        const exp = cardData.expiry.split('/');
+        const tokenRequest = {
+          card_number: cardData.number.replace(/\s/g, ''),
+          holder_name: cardData.holder,
+          expiration_year: exp[1].length === 2 ? `20${exp[1]}` : exp[1],
+          expiration_month: exp[0],
+          cvv2: cardData.cvv
+        };
+
+        const tokenPromise = new Promise((resolve, reject) => {
+          // @ts-ignore
+          Openpay.token.create(tokenRequest, (res) => resolve(res.data.id), (err) => reject(new Error(err.data.description)));
+        });
+
+        const token = await tokenPromise;
+        // @ts-ignore
+        const deviceSessionId = Openpay.deviceData.setup();
+
+        const openpayResponse = await processOpenpayPayment({
+          token,
+          deviceSessionId,
+          amount: paymentData.amount,
+          memberId: paymentData.memberId,
+          description: `Pago de ${paymentData.type} - GymMasterPro`
+        });
+
+        finalTx = openpayResponse.transaction;
+      } else {
+        const transactionData = {
+          memberId: paymentData.memberId,
+          monto: paymentData.amount,
+          metodo: paymentData.method,
+          tipo: paymentData.type,
+          status: 'Completado'
+        };
+        finalTx = await recordTransaction(transactionData);
+      }
+
+      setTransactions([finalTx, ...transactions]);
+      
+      // Update member debt locally
       if (paymentData.type === 'Mensualidad' || paymentData.type === 'Otro') {
         setMembers(members.map(m => 
           m.id === paymentData.memberId 
@@ -97,18 +152,12 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
       }
 
       setIsPaymentModalOpen(false);
-      setPaymentData({ 
-        memberId: '', 
-        amount: 0, 
-        method: 'Efectivo', 
-        type: 'Mensualidad',
-        scheduleNutrition: false,
-        nutritionDate: '',
-        nutritionTime: ''
-      });
-    } catch (error) {
+      alert('Pago procesado exitosamente');
+    } catch (error: any) {
       console.error("Error processing payment:", error);
-      alert("Error al procesar el pago.");
+      alert('Error: ' + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -536,8 +585,50 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
                       <option>Efectivo</option>
                       <option>Tarjeta</option>
                       <option>Transferencia</option>
+                      <option>Openpay</option>
                     </select>
                   </div>
+
+                {paymentData.method === 'Openpay' && (
+                  <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Detalles de Tarjeta (Seguro vía Openpay)</p>
+                    <div className="space-y-3">
+                       <input 
+                         placeholder="Nombre en la tarjeta"
+                         className="w-full p-4 bg-white border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                         value={cardData.holder}
+                         onChange={(e) => setCardData({...cardData, holder: e.target.value})}
+                       />
+                       <input 
+                         placeholder="Número de tarjeta"
+                         maxLength={16}
+                         className="w-full p-4 bg-white border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                         value={cardData.number}
+                         onChange={(e) => setCardData({...cardData, number: e.target.value.replace(/\D/g, '')})}
+                       />
+                       <div className="grid grid-cols-2 gap-4">
+                          <input 
+                           placeholder="MM/YY"
+                           maxLength={5}
+                           className="w-full p-4 bg-white border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                           value={cardData.expiry}
+                           onChange={(e) => {
+                             let v = e.target.value;
+                             if (v.length === 2 && !v.includes('/')) v += '/';
+                             setCardData({...cardData, expiry: v});
+                           }}
+                         />
+                          <input 
+                           placeholder="CVV"
+                           maxLength={4}
+                           className="w-full p-4 bg-white border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                           value={cardData.cvv}
+                           onChange={(e) => setCardData({...cardData, cvv: e.target.value.replace(/\D/g, '')})}
+                         />
+                       </div>
+                    </div>
+                  </div>
+                )}
                 </div>
 
                 <div className="space-y-1">
@@ -608,9 +699,11 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
 
               <button 
                 type="submit"
-                className="w-full py-5 bg-orange-500 text-white rounded-3xl font-black text-lg hover:bg-orange-600 shadow-2xl shadow-orange-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-3"
+                disabled={isProcessing}
+                className="w-full py-5 bg-orange-500 text-white rounded-3xl font-black text-lg hover:bg-orange-600 shadow-2xl shadow-orange-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
               >
-                <CheckCircle size={24} /> Confirmar Pago y Generar Recibo
+                {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle size={24} />}
+                {isProcessing ? 'Procesando...' : 'Confirmar Pago y Generar Recibo'}
               </button>
             </form>
           </div>

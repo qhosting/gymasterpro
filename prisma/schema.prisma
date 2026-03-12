@@ -131,6 +131,10 @@ model SystemSettings {
   wahaKey       String?
   geminiKey     String?
   ycloudKey     String? @map("ycloud_key")
+  openpayMerchantId String?
+  openpayPublicKey  String?
+  openpayPrivateKey String?
+  openpaySandbox   Boolean @default(true)
   pushEnabled   Boolean @default(true)
   backupEnabled Boolean @default(true)
 }

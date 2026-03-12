@@ -117,6 +117,19 @@ export const recordTransaction = async (transactionData: any) => {
     return await response.json();
 };
 
+export const processOpenpayPayment = async (paymentData: any) => {
+    const response = await fetch(`${API_URL}/payments/openpay`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(paymentData)
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Openpay transaction failed');
+    }
+    return await response.json();
+};
+
 export const fetchTransactions = async () => {
     const response = await fetch(`${API_URL}/transactions`, {
         headers: getHeaders()

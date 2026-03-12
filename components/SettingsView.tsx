@@ -26,6 +26,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
     wahaKey: '',
     geminiKey: '',
     ycloudKey: '',
+    openpayMerchantId: '',
+    openpayPublicKey: '',
+    openpayPrivateKey: '',
+    openpaySandbox: true,
     pushEnabled: true,
     backupEnabled: true
   });
@@ -292,6 +296,44 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser }) => {
                       value={settings.geminiKey}
                       onChange={(e) => setSettings({ ...settings, geminiKey: e.target.value })}
                     />
+                  </div>
+                </div>
+
+                <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-200 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><CreditCard size={24} /></div>
+                    <span className="text-[10px] font-black uppercase text-blue-600">Pagos Online</span>
+                  </div>
+                  <h2 className="text-xl font-bold">Openpay Gateway</h2>
+                  <div className="space-y-3">
+                    <input 
+                      placeholder="Merchant ID"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                      value={settings.openpayMerchantId}
+                      onChange={(e) => setSettings({ ...settings, openpayMerchantId: e.target.value })}
+                    />
+                    <input 
+                      placeholder="Public Key"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                      value={settings.openpayPublicKey}
+                      onChange={(e) => setSettings({ ...settings, openpayPublicKey: e.target.value })}
+                    />
+                    <input 
+                      type="password"
+                      placeholder="Private Key"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                      value={settings.openpayPrivateKey}
+                      onChange={(e) => setSettings({ ...settings, openpayPrivateKey: e.target.value })}
+                    />
+                    <div className="flex items-center gap-2 pt-2">
+                       <input 
+                         type="checkbox" 
+                         id="sandbox"
+                         checked={settings.openpaySandbox}
+                         onChange={(e) => setSettings({...settings, openpaySandbox: e.target.checked})}
+                       />
+                       <label htmlFor="sandbox" className="text-xs font-bold text-gray-500">Modo Sandbox (Pruebas)</label>
+                    </div>
                   </div>
                 </div>
 

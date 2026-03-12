@@ -12,6 +12,7 @@ import multer from 'multer';
 import fs from 'fs';
 import { createClient } from 'redis';
 import { GoogleGenAI } from "@google/genai";
+import Openpay from 'openpay';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -516,8 +517,82 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
         });
         res.json(transactions);
     } catch (error) {
-        console.error('Error fetching transactions:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// --- OPENPAY PAYMENTS ---
+app.post('/api/payments/openpay', authenticateToken, async (req, res) => {
+    const { token, deviceSessionId, amount, memberId, description } = req.body;
+    
+    try {
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+        
+        if (!settings || !settings.openpayMerchantId || !settings.openpayPrivateKey) {
+            return res.status(400).json({ error: 'Openpay no está configurado correctamente' });
+        }
+
+        const openpay = new Openpay(
+            settings.openpayMerchantId, 
+            settings.openpayPrivateKey, 
+            settings.openpaySandbox
+        );
+
+        const member = await prisma.member.findUnique({ 
+            where: { id: memberId },
+            include: { user: true }
+        });
+
+        if (!member) return res.status(404).json({ error: 'Socio no encontrado' });
+
+        const chargeRequest = {
+            source_id: token,
+            method: 'card',
+            amount: parseFloat(amount),
+            currency: 'MXN',
+            description: description || 'Pago de Membresía GymMaster',
+            device_session_id: deviceSessionId,
+            customer: {
+                name: member.user.nombre,
+                email: member.user.email,
+                phone_number: member.user.telefono || '5555555555'
+            }
+        };
+
+        openpay.charges.create(chargeRequest, async (error, charge) => {
+            if (error) {
+                console.error('Openpay Error:', error);
+                return res.status(error.http_code || 500).json({ 
+                    error: error.description, 
+                    code: error.error_code 
+                });
+            }
+
+            // Registrar transacción en DB
+            const transaction = await prisma.transaction.create({
+                data: {
+                    memberId,
+                    monto: parseFloat(amount),
+                    metodo: 'Openpay',
+                    tipo: description && description.includes('Inscripción') ? 'Inscripción' : 'Mensualidad',
+                    status: 'Completado'
+                }
+            });
+
+            // Actualizar deuda si es mensualidad
+            if (transaction.tipo === 'Mensualidad') {
+                await prisma.member.update({
+                    where: { id: memberId },
+                    data: { deuda: { decrement: parseFloat(amount) } }
+                });
+            }
+
+            res.json({ success: true, charge, transaction });
+        });
+
+    } catch (error) {
+        console.error('Openpay Integration Error:', error);
+        res.status(500).json({ error: 'Error interno al procesar el pago' });
     }
 });
 

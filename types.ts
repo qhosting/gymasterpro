@@ -49,7 +49,7 @@ export interface Transaction {
   memberId: string;
   monto: number;
   fecha: string;
-  metodo: 'Efectivo' | 'Tarjeta' | 'Transferencia';
+  metodo: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Openpay';
   tipo: 'Mensualidad' | 'Inscripción' | 'Producto' | 'Otro';
   status: 'Completado' | 'Pendiente';
 }
@@ -118,4 +118,21 @@ export interface Routine {
   instructor?: string;
   objetivo?: string;
   exercises: Exercise[];
+}
+
+export interface SystemSettings {
+  id: string;
+  gymName: string;
+  aforoMaximo: number;
+  direccion?: string;
+  horario?: string;
+  wahaUrl?: string;
+  wahaKey?: string;
+  geminiKey?: string;
+  openpayMerchantId?: string;
+  openpayPublicKey?: string;
+  openpayPrivateKey?: string;
+  openpaySandbox: boolean;
+  pushEnabled: boolean;
+  backupEnabled: boolean;
 }
