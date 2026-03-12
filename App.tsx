@@ -18,7 +18,7 @@ import {
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
 import { UserRole, User, Member, MembershipStatus, NotificationLog } from './types';
-import { MOCK_MEMBERS, GYM_PLANS } from './constants';
+import { GYM_PLANS } from './constants';
 import Dashboard from './components/Dashboard';
 import MembersList from './components/MembersList';
 import AttendanceTracker from './components/AttendanceTracker';

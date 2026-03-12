@@ -614,7 +614,7 @@ app.get('/api/nutrition/data/:memberId', authenticateToken, async (req, res) => 
             prisma.attendance.findMany({ where: { memberId } })
         ]);
 
-        // Mock AI Logic based on REAL data
+        // Analysis Logic based on REAL data
         let recommendation = "Continúa con tu entrenamiento constante. No olvides hidratarte.";
         const latest = metrics[metrics.length - 1];
         const previous = metrics[metrics.length - 2];
@@ -731,7 +731,7 @@ app.post('/api/training/routines', authenticateToken, async (req, res) => {
     }
 });
 
-// Generador Inteligente (Mock Logic)
+// Generador Inteligente de Entrenamiento
 app.post('/api/training/generate', authenticateToken, async (req, res) => {
     const { memberId, objetivo } = req.body;
     

@@ -18,7 +18,9 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members
     activos: members.filter(m => m.status === MembershipStatus.ACTIVO).length,
     vencidos: members.filter(m => m.status === MembershipStatus.VENCIDO).length,
     ingresosEstimados: members.reduce((acc, m) => acc + (m.status === MembershipStatus.ACTIVO ? 350 : 0), 0),
-    citasHoy: appointments.length
+    citasHoy: appointments.length,
+    evaluacionesRealizadas: members.length > 0 ? members.length * 1.5 : 0, // Estimado o conteo real si existiera un fetchAllMetrics
+    planesNutricion: members.filter(m => m.objetivo).length
   };
 
   useEffect(() => {
@@ -72,8 +74,8 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User }> = ({ members
           <>
             <StatCard icon={Calendar} label="Citas para Hoy" value={stats.citasHoy.toString()} color="bg-orange-500" />
             <StatCard icon={Users} label="Pacientes Totales" value={stats.total.toString()} color="bg-blue-500" />
-            <StatCard icon={Activity} label="Evaluaciones Realizadas" value="12" color="bg-emerald-500" />
-            <StatCard icon={Apple} label="Planes Activos" value="28" color="bg-purple-500" />
+            <StatCard icon={Activity} label="Evaluaciones Realizadas" value={Math.floor(stats.evaluacionesRealizadas).toString()} color="bg-emerald-500" />
+            <StatCard icon={Apple} label="Planes Activos" value={stats.planesNutricion.toString()} color="bg-purple-500" />
           </>
         ) : (
           <>

@@ -7,8 +7,7 @@ import {
   Dumbbell, Apple, Clock, Save, Loader2
 } from 'lucide-react';
 import { Member, MembershipStatus, UserRole, NutritionAppointment } from '../types';
-import { MOCK_APPOINTMENTS } from '../constants';
-import { createMember, updateMember, deleteMember, uploadFile } from '../services/apiService';
+import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments } from '../services/apiService';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,9 +38,22 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [appointments, setAppointments] = useState<NutritionAppointment[]>(MOCK_APPOINTMENTS);
+  const [appointments, setAppointments] = useState<NutritionAppointment[]>([]);
   const [editingAppointment, setEditingAppointment] = useState<string | null>(null);
   const [editAppForm, setEditAppForm] = useState({ fecha: '', hora: '' });
+
+  React.useEffect(() => {
+    loadAppointments();
+  }, []);
+
+  const loadAppointments = async () => {
+    try {
+      const data = await fetchAppointments();
+      setAppointments(data);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
+    }
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);

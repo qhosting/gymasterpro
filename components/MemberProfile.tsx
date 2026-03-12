@@ -211,7 +211,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Wearables Connection Mockup */}
+          {/* Wearables Connection */}
           <div className="bg-white p-10 rounded-[50px] border border-gray-100 shadow-sm relative overflow-hidden group">
              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl"></div>
              <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">

@@ -75,13 +75,28 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   
   const totalPendiente = members.reduce((acc, m) => acc + m.deuda, 0);
 
-  const revenueData = [
-    { name: 'Ene', income: 12500 },
-    { name: 'Feb', income: 15800 },
-    { name: 'Mar', income: 14200 },
-    { name: 'Abr', income: 19500 },
-    { name: 'May', income: totalRecaudado },
-  ];
+  const getMonthlyRevenue = () => {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const currentMonth = new Date().getMonth();
+    const data = [];
+    
+    // Last 5 months
+    for (let i = 4; i >= 0; i--) {
+        const monthIndex = (currentMonth - i + 12) % 12;
+        const monthName = months[monthIndex];
+        const monthTotal = transactions
+            .filter(t => {
+                const tDate = new Date(t.fecha);
+                return tDate.getMonth() === monthIndex && t.status === 'Completado';
+            })
+            .reduce((acc, t) => acc + t.monto, 0);
+            
+        data.push({ name: monthName, income: monthTotal });
+    }
+    return data;
+  };
+
+  const revenueData = getMonthlyRevenue();
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
