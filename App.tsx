@@ -241,8 +241,14 @@ const App: React.FC = () => {
                value={currentUser?.role || UserRole.MIEMBRO}
                onChange={(e) => {
                  const newRole = e.target.value as UserRole;
-                 if (currentUser) setCurrentUser({...currentUser, role: newRole});
-                 // Reset tab if current not allowed for new role
+                 if (currentUser) {
+                   let updatedUser = { ...currentUser, role: newRole };
+                   if (newRole === UserRole.MIEMBRO && members.length > 0) {
+                     updatedUser.id = members[0].id;
+                     updatedUser.nombre = members[0].nombre;
+                   }
+                   setCurrentUser(updatedUser);
+                 }
                  if (newRole === UserRole.MIEMBRO) {
                    setActiveTab('profile');
                  } else if (['finance', 'settings', 'dashboard'].includes(activeTab)) {

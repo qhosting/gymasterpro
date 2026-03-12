@@ -122,23 +122,21 @@ model Exercise {
 }
 
 model SystemSettings {
-  id            String  @id @default("default")
-  gymName       String  @default("GymMaster Pro")
-  aforoMaximo   Int     @default(50)
-  direccion     String?
-  horario       String?
-  wahaUrl       String?
-  wahaKey       String?
-  geminiKey     String?
-  ycloudKey     String? @map("ycloud_key")
+  id                String  @id @default("default")
+  gymName           String  @default("GymMaster Pro")
+  aforoMaximo       Int     @default(50)
+  direccion         String?
+  horario           String?
+  wahaUrl           String?
+  wahaKey           String?
+  geminiKey         String?
+  ycloudKey         String? @map("ycloud_key")
+  pushEnabled       Boolean @default(true)
+  backupEnabled     Boolean @default(true)
   openpayMerchantId String?
-  openpayPublicKey  String?
   openpayPrivateKey String?
-  openpaySandbox   Boolean @default(true)
-  pushEnabled   Boolean @default(true)
-  backupEnabled Boolean @default(true)
-  primaryColor  String  @default("#f97316") // default orange-500
-  darkMode      Boolean @default(false)
+  openpayPublicKey  String?
+  openpaySandbox    Boolean @default(true)
 }
 
 model Notification {
