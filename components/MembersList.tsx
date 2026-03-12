@@ -149,29 +149,40 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
 
   const handleSubmitMember = async (data: MemberFormData) => {
     setIsLoading(true);
+    
+    // Safety timeout: stop loading after 15 seconds if nothing happens
+    const safetyTimeout = setTimeout(() => {
+        setIsLoading(false);
+    }, 15000);
+
     try {
       let finalFoto = isEditMode ? selectedMember?.foto || '' : `https://picsum.photos/seed/${data.nombre}/100/100`;
 
       if (capturedImage && capturedImage !== selectedMember?.foto) {
-        // Convert base64 to File
-        const res = await fetch(capturedImage);
-        const blob = await res.blob();
-        const file = new File([blob], "captured-photo.png", { type: "image/png" });
-        const uploadRes = await uploadFile(file);
-        finalFoto = uploadRes.url;
+        try {
+            const res = await fetch(capturedImage);
+            const blob = await res.blob();
+            const file = new File([blob], "captured-photo.png", { type: "image/png" });
+            const uploadRes = await uploadFile(file);
+            finalFoto = uploadRes.url;
+        } catch (uploadError: any) {
+            console.error("Photo upload error:", uploadError);
+            // Non-critical, continue with default/old photo if possible
+        }
       }
 
       if (isEditMode && selectedMember) {
+        // Edit mode
         const updatedMember = await updateMember(selectedMember.id, {
           ...data,
           foto: finalFoto,
         });
         
-        // Update local state with the actual object from server
         setMembers(members.map(m => m.id === selectedMember.id ? updatedMember : m));
         setIsModalOpen(false);
         alert("Socio actualizado con éxito");
       } else {
+        // Create mode
         const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getDate() + 30);
 
@@ -187,6 +198,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
         const savedMember = await createMember(memberData);
         setMembers([savedMember, ...members]);
         setIsModalOpen(false);
+        alert("Socio registrado con éxito");
       }
       
       reset();
@@ -195,8 +207,9 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
       setSelectedMember(null);
     } catch (error: any) {
       console.error("Error saving member:", error);
-      alert(error.message || "Error al guardar el socio.");
+      alert(error.message || "Error al guardar el socio. Por favor, verifica tu conexión.");
     } finally {
+      clearTimeout(safetyTimeout);
       setIsLoading(false);
     }
   };

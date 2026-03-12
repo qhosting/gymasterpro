@@ -220,6 +220,7 @@ app.get('/api/members', authenticateToken, async (req, res) => {
 // Crear miembro
 app.post('/api/members', authenticateToken, async (req, res) => {
     const data = req.body;
+    console.log(`[POST] Intentando crear socio: ${data.email}`);
     try {
         const result = await prisma.$transaction(async (tx) => {
             const user = await tx.user.create({
@@ -248,12 +249,15 @@ app.post('/api/members', authenticateToken, async (req, res) => {
             return { ...user, ...member };
         });
 
-        // Invalidar cache de miembros
-        if (redisClient.isOpen) await redisClient.del('all_members_list');
+        // Invalidar cache de miembros de forma segura (sin await para no bloquear)
+        if (redisClient.isOpen) {
+            redisClient.del('all_members_list').catch(err => console.error('Redis error:', err));
+        }
         
+        console.log(`[POST] Socio creado con éxito: ${result.id}`);
         res.status(201).json(result);
     } catch (error) {
-        console.error('SERVER ERROR [CREATE MEMBER]:', JSON.stringify(error, null, 2));
+        console.error('SERVER ERROR [CREATE MEMBER]:', error);
         if (error.code === 'P2002') {
             const getFields = (err) => {
                 if (err.meta?.target) return Array.isArray(err.meta.target) ? err.meta.target : [err.meta.target];
@@ -280,6 +284,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
 app.put('/api/members/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const data = req.body;
+    console.log(`[PUT] Intentando actualizar socio ID: ${id}`);
     try {
         const result = await prisma.$transaction(async (tx) => {
             const userData = {
@@ -294,7 +299,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
                 userData.password = await bcrypt.hash(data.password, 10);
             }
 
-            const user = await tx.user.update({
+            await tx.user.update({
                 where: { id },
                 data: userData
             });
@@ -329,12 +334,15 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
             };
         });
 
-        // Invalidar cache de miembros
-        if (redisClient.isOpen) await redisClient.del('all_members_list');
+        // Invalidar cache de forma segura
+        if (redisClient.isOpen) {
+            redisClient.del('all_members_list').catch(err => console.error('Redis error:', err));
+        }
         
+        console.log(`[PUT] Socio actualizado con éxito: ${id}`);
         res.json(result);
     } catch (error) {
-        console.error('SERVER ERROR [UPDATE MEMBER]:', JSON.stringify(error, null, 2));
+        console.error('SERVER ERROR [UPDATE MEMBER]:', error);
         if (error.code === 'P2002') {
             const getFields = (err) => {
                 if (err.meta?.target) return Array.isArray(err.meta.target) ? err.meta.target : [err.meta.target];
@@ -353,6 +361,11 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
             
             return res.status(400).json({ error: msg });
         }
+        
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'No se encontró el registro para actualizar' });
+        }
+        
         res.status(500).json({ error: 'Error al actualizar miembro' });
     }
 });
@@ -360,20 +373,23 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
 // Eliminar miembro
 app.delete('/api/members/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
+    console.log(`[DELETE] Intentando eliminar socio ID: ${id}`);
     try {
         await prisma.$transaction(async (tx) => {
-            // Intentar borrar Member primero por integridad
+            // Eliminar registros dependientes primero (opcional si hay cascade, pero más seguro aquí)
             await tx.member.deleteMany({ where: { id } });
-            // Luego borrar User
             await tx.user.deleteMany({ where: { id } });
         });
 
-        // Invalidar cache de miembros
-        if (redisClient.isOpen) await redisClient.del('all_members_list');
+        // Invalidar cache de forma segura
+        if (redisClient.isOpen) {
+            redisClient.del('all_members_list').catch(err => console.error('Redis error:', err));
+        }
         
+        console.log(`[DELETE] Socio eliminado con éxito: ${id}`);
         res.json({ message: 'Miembro eliminado con éxito' });
     } catch (error) {
-        console.error('SERVER ERROR [DELETE MEMBER]:', JSON.stringify(error, null, 2));
+        console.error('SERVER ERROR [DELETE MEMBER]:', error);
         res.status(500).json({ error: 'Error al eliminar miembro' });
     }
 });
