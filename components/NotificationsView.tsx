@@ -10,7 +10,8 @@ import { Member, WahaConfig, NotificationLog, MembershipStatus } from '../types'
 import { generateNotificationTemplate } from '../services/geminiService';
 import { sendWahaMessage, checkWahaStatus } from '../services/wahaService';
 import { fetchNotifications, createNotificationLog } from '../services/apiService';
-import { UserRole, User } from '../types';
+import { UserRole, User, Plan } from '../types';
+import { WHATSAPP_TEMPLATES, WhatsAppTemplate } from '../constants/whatsappTemplates';
 
 interface NotificationsViewProps {
   members: Member[];
@@ -77,6 +78,20 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
     const content = await generateNotificationTemplate(msgType, selectedMember.nombre, tone);
     setTemplate(content);
     setIsGenerating(false);
+  };
+
+  const applyTemplate = (tpl: WhatsAppTemplate) => {
+    if (!selectedMember) return;
+    let content = tpl.content.replace(/{nombre}/g, selectedMember.nombre);
+    
+    // Si es pago, buscar monto (mock o real)
+    content = content.replace(/{monto}/g, '0.00');
+    content = content.replace(/{fecha}/g, selectedMember.fechaVencimiento);
+    content = content.replace(/{nueva_fecha}/g, 'Próximo mes');
+    content = content.replace(/{hora}/g, '10:00 AM');
+    
+    setTemplate(content);
+    setSendFeedback(null);
   };
 
   const handleSendWaha = async (targetMember: Member, customMsg?: string) => {
@@ -267,8 +282,33 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
                  <div className="p-3 bg-orange-100 text-orange-600 rounded-2xl"><Sparkles size={24} /></div>
                  <div>
                    <h3 className="text-xl font-bold">2. Redacción con IA</h3>
-                   <p className="text-sm text-gray-400">Personalización profunda del mensaje.</p>
+                   <p className="text-sm text-gray-400">Personalización profunda o usa plantillas express.</p>
                  </div>
+              </div>
+
+              {/* Plantillas Express */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Plantillas Express</label>
+                <div className="flex flex-wrap gap-2">
+                  {WHATSAPP_TEMPLATES.map(tpl => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => applyTemplate(tpl)}
+                      className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 text-gray-600 text-[10px] font-bold uppercase rounded-xl border border-gray-100 transition-all"
+                    >
+                      {tpl.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-gray-100"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-4 bg-white text-gray-400 font-bold uppercase tracking-widest">O genera con IA</span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
