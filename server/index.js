@@ -29,17 +29,24 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gym-master-pro-secret-key-2024';
 
 // Redis Setup
 const redisClient = createClient({
-    url: process.env.REDIS_URL
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
+let isRedisConnected = false;
+
+redisClient.on('error', (err) => {
+    if (isRedisConnected) {
+        console.log('Redis Client Error', err);
+    }
+});
 
 (async () => {
     try {
         await redisClient.connect();
+        isRedisConnected = true;
         console.log('Connected to Redis');
     } catch (err) {
-        console.error('Could not connect to Redis', err);
+        console.warn('⚠️ Redis not available. Running without cache.');
     }
 })();
 
@@ -242,7 +249,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
         });
 
         // Invalidar cache de miembros
-        await redisClient.del('all_members_list');
+        if (redisClient.isOpen) await redisClient.del('all_members_list');
         
         res.status(201).json(result);
     } catch (error) {
@@ -284,7 +291,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
         });
 
         // Invalidar cache de miembros
-        await redisClient.del('all_members_list');
+        if (redisClient.isOpen) await redisClient.del('all_members_list');
         
         res.json(result);
     } catch (error) {
@@ -301,7 +308,7 @@ app.delete('/api/members/:id', authenticateToken, async (req, res) => {
         await prisma.user.delete({ where: { id } });
 
         // Invalidar cache de miembros
-        await redisClient.del('all_members_list');
+        if (redisClient.isOpen) await redisClient.del('all_members_list');
         
         res.json({ message: 'Miembro eliminado con éxito' });
     } catch (error) {
@@ -790,8 +797,21 @@ app.get('/api/member/profile/:id', authenticateToken, async (req, res) => {
             where: { id },
             include: { user: true, plan: true }
         });
-        res.json(member);
+        if (!member) return res.status(404).json({ error: 'Socio no encontrado' });
+        
+        // Flatten and transform for frontend
+        const profile = {
+            ...member.user,
+            ...member,
+            plan: member.plan,
+            fechaRegistro: member.fechaRegistro.toISOString().split('T')[0],
+            fechaVencimiento: member.fechaVencimiento.toISOString().split('T')[0]
+        };
+        delete profile.user; // Remove nested user object
+        
+        res.json(profile);
     } catch (error) {
+        console.error('Error fetching full profile:', error);
         res.status(500).json({ error: 'Error al obtener perfil' });
     }
 });
