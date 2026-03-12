@@ -6,8 +6,8 @@ import {
   ChevronRight, RefreshCw, Eye, Tag, CreditCard, SlidersHorizontal,
   Dumbbell, Apple, Clock, Save, Loader2
 } from 'lucide-react';
-import { Member, MembershipStatus, UserRole, NutritionAppointment } from '../types';
-import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments } from '../services/apiService';
+import { Member, MembershipStatus, UserRole, NutritionAppointment, Plan } from '../types';
+import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments, fetchPlans } from '../services/apiService';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,10 +42,24 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const [editingAppointment, setEditingAppointment] = useState<string | null>(null);
   const [editAppForm, setEditAppForm] = useState({ fecha: '', hora: '' });
   const [isEditMode, setIsEditMode] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
 
   React.useEffect(() => {
     loadAppointments();
+    loadPlans();
   }, []);
+
+  const loadPlans = async () => {
+    try {
+      const data = await fetchPlans();
+      setAvailablePlans(data);
+      if (data.length > 0 && !isEditMode) {
+        setValue('planId', data[0].id);
+      }
+    } catch (error) {
+      console.error("Error loading plans:", error);
+    }
+  };
 
   const loadAppointments = async () => {
     try {
@@ -62,7 +76,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const { register, handleSubmit, reset, formState: { errors }, setValue } = useForm<MemberFormData>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      planId: '1',
+      planId: '',
       objetivo: 'Pérdida de peso'
     }
   });
@@ -187,7 +201,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
       nombre: '',
       email: '',
       telefono: '',
-      planId: '1',
+      planId: availablePlans[0]?.id || '',
       objetivo: 'Pérdida de peso',
       contactoEmergencia: '',
       telefonoEmergencia: '',
@@ -326,9 +340,9 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                onChange={(e) => setPlanFilter(e.target.value)}
              >
                <option value="todos">Todos los Planes</option>
-               <option value="1">Plan Básico</option>
-               <option value="2">Plan Premium</option>
-               <option value="3">Plan Anual</option>
+               {availablePlans.map(plan => (
+                 <option key={plan.id} value={plan.id}>{plan.nombre}</option>
+               ))}
              </select>
            </div>
 
@@ -770,9 +784,9 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                       {...register('planId')}
                       className="w-full pl-12 pr-4 p-4 sm:p-5 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold text-sm transition-all appearance-none cursor-pointer"
                     >
-                      <option value="1">Plan Básico (Mensual)</option>
-                      <option value="2">Plan Premium (Trimestral)</option>
-                      <option value="3">Plan Anual (VIP)</option>
+                      {availablePlans.map(plan => (
+                        <option key={plan.id} value={plan.id}>{plan.nombre} (${plan.costo})</option>
+                      ))}
                     </select>
                   </div>
                 </div>
