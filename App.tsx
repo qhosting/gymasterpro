@@ -113,7 +113,6 @@ const App: React.FC = () => {
       const data = await fetchSystemSettings();
       if (data) {
         setSystemSettings(data);
-        // Apply Theme
         if (data.darkMode) {
           document.documentElement.classList.add('dark');
         } else {
@@ -122,7 +121,6 @@ const App: React.FC = () => {
         
         if (data.primaryColor) {
           document.documentElement.style.setProperty('--primary-color', data.primaryColor);
-          // Simple logic for hover (darken by 10% approx)
           document.documentElement.style.setProperty('--primary-color-hover', data.primaryColor + 'cc'); 
           document.documentElement.style.setProperty('--primary-color-shadow', data.primaryColor + '33');
         }
@@ -136,9 +134,8 @@ const App: React.FC = () => {
     loadSystemSettings();
   }, [isAuthenticated]);
 
-  // Filter menu items by role
   const menuItems = [
-    { id: 'dashboard', label: 'Panel Control', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
@@ -152,7 +149,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (!currentUser) return null;
     switch (activeTab) {
-      case 'dashboard': return <Dashboard members={members} currentUser={currentUser} />;
+      case 'dashboard': return <Dashboard members={members} currentUser={currentUser} onNavigate={setActiveTab} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
       case 'attendance': return <AttendanceTracker members={members} />;
       case 'training': return <TrainingView members={members} currentUser={currentUser} />;
@@ -161,7 +158,7 @@ const App: React.FC = () => {
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
       case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} currentUser={currentUser} />;
       case 'settings': return <SettingsView currentUser={currentUser} onSettingsUpdate={loadSystemSettings} />;
-      default: return <Dashboard members={members} currentUser={currentUser} />;
+      default: return <Dashboard members={members} currentUser={currentUser} onNavigate={setActiveTab} />;
     }
   };
 
@@ -192,7 +189,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden relative">
-      {/* Sidebar Overlay for Mobile */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-[60] lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
@@ -200,7 +196,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Sidebar (Drawer on mobile, permanent on desktop) */}
       <aside className={`
         fixed lg:relative inset-y-0 left-0 z-[70] 
         bg-gray-900 text-white transition-all duration-500 transform
@@ -232,39 +227,7 @@ const App: React.FC = () => {
           ))}
         </nav>
 
-        {/* Role Switcher (For Demo Purposes) */}
         <div className="p-4 border-t border-gray-800 bg-gray-900/50">
-          <div className="mb-4">
-             {isSidebarOpen && <p className="text-[10px] text-gray-500 mb-2 px-2 uppercase font-black tracking-widest">Simular Perfil</p>}
-             <select 
-               className="bg-gray-800 text-white text-[11px] w-full p-2.5 rounded-xl border-none outline-none font-bold cursor-pointer hover:bg-gray-700 transition-colors"
-               value={currentUser?.role || UserRole.MIEMBRO}
-               onChange={(e) => {
-                 const newRole = e.target.value as UserRole;
-                 if (currentUser) {
-                   let updatedUser = { ...currentUser, role: newRole };
-                   if (newRole === UserRole.MIEMBRO && members.length > 0) {
-                     updatedUser.id = members[0].id;
-                     updatedUser.nombre = members[0].nombre;
-                   }
-                   setCurrentUser(updatedUser);
-                 }
-                 if (newRole === UserRole.MIEMBRO) {
-                   setActiveTab('profile');
-                 } else if (['finance', 'settings', 'dashboard'].includes(activeTab)) {
-                   setActiveTab('dashboard');
-                 }
-               }}
-             >
-                <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
-                <option value={UserRole.ADMIN}>Admin</option>
-                <option value={UserRole.INSTRUCTOR}>Instructor</option>
-                <option value={UserRole.NUTRIOLOGO}>Nutriólogo</option>
-                <option value={UserRole.MIEMBRO}>Miembro</option>
-             </select>
-          </div>
-
-
           {isOffline && (
             <div className={`mx-2 mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-3 animate-pulse ${!isSidebarOpen && 'justify-center'}`}>
               <div className="p-2 bg-rose-500 text-white rounded-xl">
@@ -281,7 +244,7 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-3 p-2 rounded-2xl hover:bg-gray-800 cursor-pointer transition-all group">
             <div className="relative">
-              <img src={currentUser.foto} alt="profile" className="w-10 h-10 rounded-xl object-cover border-2 border-orange-500 shadow-lg" />
+              <img src={currentUser?.foto} alt="profile" className="w-10 h-10 rounded-xl object-cover border-2 border-orange-500 shadow-lg" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
             </div>
             {isSidebarOpen && (
@@ -295,9 +258,7 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Header */}
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-20 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 text-gray-500 hover:bg-gray-50 rounded-2xl transition-all active:scale-95 border border-transparent hover:border-gray-100">
@@ -359,14 +320,12 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Scrollable Area */}
         <div className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar pb-24 lg:pb-10">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>
         </div>
 
-        {/* Bottom Mobile Navigation */}
         <div className="lg:hidden fixed bottom-6 left-6 right-6 bg-gray-900/95 backdrop-blur-md rounded-[32px] p-2 flex justify-around items-center z-[50] shadow-2xl border border-white/10">
            {menuItems.slice(0, 5).map(item => (
              <button
