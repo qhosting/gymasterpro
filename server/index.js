@@ -361,15 +361,19 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
 app.delete('/api/members/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
-        await prisma.member.delete({ where: { id } });
-        await prisma.user.delete({ where: { id } });
+        await prisma.$transaction(async (tx) => {
+            // Intentar borrar Member primero por integridad
+            await tx.member.deleteMany({ where: { id } });
+            // Luego borrar User
+            await tx.user.deleteMany({ where: { id } });
+        });
 
         // Invalidar cache de miembros
         if (redisClient.isOpen) await redisClient.del('all_members_list');
         
         res.json({ message: 'Miembro eliminado con éxito' });
     } catch (error) {
-        console.error('Error deleting member:', error);
+        console.error('SERVER ERROR [DELETE MEMBER]:', JSON.stringify(error, null, 2));
         res.status(500).json({ error: 'Error al eliminar miembro' });
     }
 });
