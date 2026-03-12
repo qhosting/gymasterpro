@@ -137,6 +137,8 @@ model SystemSettings {
   openpayPrivateKey String?
   openpayPublicKey  String?
   openpaySandbox    Boolean @default(true)
+  primaryColor      String  @default("#f97316")
+  darkMode          Boolean @default(false)
 }
 
 model Notification {
