@@ -10,15 +10,18 @@ import { Member, WahaConfig, NotificationLog, MembershipStatus } from '../types'
 import { generateNotificationTemplate } from '../services/geminiService';
 import { sendWahaMessage, checkWahaStatus } from '../services/wahaService';
 import { fetchNotifications, createNotificationLog } from '../services/apiService';
+import { UserRole, User } from '../types';
 
 interface NotificationsViewProps {
   members: Member[];
   notifications: NotificationLog[];
   setNotifications: React.Dispatch<React.SetStateAction<NotificationLog[]>>;
+  currentUser: User;
 }
 
-const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifications, setNotifications }) => {
-  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'automation'>('send');
+const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifications, setNotifications, currentUser }) => {
+  const isMember = currentUser.role === UserRole.MIEMBRO;
+  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'automation'>(isMember ? 'history' : 'send');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [msgType, setMsgType] = useState('Vencimiento');
   const [tone, setTone] = useState('Amigable');
@@ -124,6 +127,13 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
     alert('Automatización completada con éxito.');
   };
 
+  const filteredNotifications = useMemo(() => {
+    if (isMember) {
+      return notifications.filter(n => n.memberId === currentUser.id);
+    }
+    return notifications;
+  }, [notifications, isMember, currentUser.id]);
+
   const tones = ['Amigable', 'Profesional', 'Urgente', 'Motivador'];
   const getMemberName = (id: string) => members.find(m => m.id === id)?.nombre || 'Socio';
 
@@ -132,23 +142,29 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
       {/* Header & Connectivity */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Hub de Comunicaciones</h1>
-          <p className="text-gray-500">Automatización inteligente y mensajería directa.</p>
+          <h1 className="text-3xl font-black text-gray-900">
+            {isMember ? 'Mis Notificaciones' : 'Hub de Comunicaciones'}
+          </h1>
+          <p className="text-gray-500">
+            {isMember ? 'Historial de mensajes y alertas recibidas.' : 'Automatización inteligente y mensajería directa.'}
+          </p>
         </div>
-        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            isWahaOnline ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-          }`}>
-            <Smartphone size={16} className={isWahaOnline ? 'animate-bounce' : ''} />
-            WAHA: {isWahaOnline ? 'CONECTADO' : 'DESCONECTADO'}
+        {!isMember && (
+          <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              isWahaOnline ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+            }`}>
+              <Smartphone size={16} className={isWahaOnline ? 'animate-bounce' : ''} />
+              WAHA: {isWahaOnline ? 'CONECTADO' : 'DESCONECTADO'}
+            </div>
+            <button 
+              onClick={() => setShowWahaSettings(!showWahaSettings)}
+              className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
+            >
+              <Settings size={20} />
+            </button>
           </div>
-          <button 
-            onClick={() => setShowWahaSettings(!showWahaSettings)}
-            className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
-          >
-            <Settings size={20} />
-          </button>
-        </div>
+        )}
       </div>
 
       {/* WAHA Configuration Panel */}
@@ -188,33 +204,34 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
         </div>
       )}
 
-      {/* Main Tabs */}
-      <div className="flex gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
-        {[
-          { id: 'send', label: 'Envío Individual', icon: Zap },
-          { id: 'automation', label: 'Automatización Smart', icon: Cpu },
-          { id: 'history', label: 'Historial', icon: History }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold transition-all relative ${
-              activeTab === tab.id ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <tab.icon size={16} className="" />
-            {tab.label}
-            {tab.id === 'automation' && expiringIn3Days.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 text-[8px] text-white items-center justify-center font-bold">
-                  {expiringIn3Days.length}
+      {!isMember && (
+        <div className="flex gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
+          {[
+            { id: 'send', label: 'Envío Individual', icon: Zap },
+            { id: 'automation', label: 'Automatización Smart', icon: Cpu },
+            { id: 'history', label: 'Historial', icon: History }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold transition-all relative ${
+                activeTab === tab.id ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <tab.icon size={16} className="" />
+              {tab.label}
+              {tab.id === 'automation' && expiringIn3Days.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 text-[8px] text-white items-center justify-center font-bold">
+                    {expiringIn3Days.length}
+                  </span>
                 </span>
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {activeTab === 'send' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -409,19 +426,23 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
       {activeTab === 'history' && (
         <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-500">
            <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold">Registro de Comunicaciones</h3>
-              <button 
-                onClick={() => setNotifications([])}
-                className="text-sm font-bold text-gray-400 hover:text-red-500"
-              >
-                Limpiar historial
-              </button>
+              <h3 className="text-xl font-bold">
+                {isMember ? 'Mi Historial de Notificaciones' : 'Registro de Comunicaciones'}
+              </h3>
+              {!isMember && (
+                <button 
+                  onClick={() => setNotifications([])}
+                  className="text-sm font-bold text-gray-400 hover:text-red-500"
+                >
+                  Limpiar historial
+                </button>
+              )}
            </div>
            <div className="overflow-x-auto">
              <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                    <th className="px-8 py-4">Socio</th>
+                    {!isMember && <th className="px-8 py-4">Socio</th>}
                     <th className="px-8 py-4">Fecha / Hora</th>
                     <th className="px-8 py-4">Tipo</th>
                     <th className="px-8 py-4">Contenido</th>
@@ -429,11 +450,13 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ members, notifica
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {notifications.map(log => (
+                  {filteredNotifications.map(log => (
                     <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-bold text-gray-900">{getMemberName(log.memberId)}</span>
-                      </td>
+                      {!isMember && (
+                        <td className="px-8 py-5">
+                          <span className="text-sm font-bold text-gray-900">{getMemberName(log.memberId)}</span>
+                        </td>
+                      )}
                       <td className="px-8 py-5 text-sm text-gray-500">{log.timestamp}</td>
                       <td className="px-8 py-5">
                         <span className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black uppercase tracking-wider">{log.tipo}</span>

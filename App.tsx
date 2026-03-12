@@ -159,7 +159,7 @@ const App: React.FC = () => {
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
-      case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} />;
+      case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} currentUser={currentUser} />;
       case 'settings': return <SettingsView currentUser={currentUser} onSettingsUpdate={loadSystemSettings} />;
       default: return <Dashboard members={members} currentUser={currentUser} />;
     }
