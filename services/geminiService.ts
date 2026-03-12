@@ -59,15 +59,7 @@ export const identifyMemberByFace = async (base64Image: string, members: any[]) 
     nombre: m.nombre
   }));
 
-  const prompt = `Analiza la imagen de este socio e identifícalo comparándolo con la base de datos de miembros proporcionada.
-    
-    Base de datos de miembros (ID y Nombre):
-    ${JSON.stringify(membersContext)}
-
-    Instrucciones:
-    1. Si encuentras una coincidencia clara basándote en rasgos faciales, devuelve únicamente el ID del miembro.
-    2. Si no estás seguro o no hay coincidencia, devuelve "UNKNOWN".
-    3. No añadas explicaciones, solo el ID o "UNKNOWN".`;
+  const prompt = `Identify the member in the image from this list: ${JSON.stringify(membersContext)}. Return ONLY the member's ID if a clear match is found, otherwise return 'UNKNOWN'. Do not include any other text or explanations.`;
 
   try {
     const response = await fetch(`${API_URL}/ai/process`, {

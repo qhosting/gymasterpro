@@ -10,6 +10,7 @@ import {
 import jsQR from 'jsqr';
 import { Member, MembershipStatus } from '../types';
 import { recordCheckIn, recordCheckOut, fetchTodayAttendance } from '../services/apiService';
+import { identifyMemberByFace } from '../services/geminiService';
 
 interface DetailedAttendanceRecord {
   id: string;
@@ -37,7 +38,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
   const [kioskStatus, setKioskStatus] = useState<'idle' | 'success' | 'warning' | 'error' | 'analyzing'>('idle');
   const [kioskMember, setKioskMember] = useState<Member | null>(null);
 
-  // Fix: Added missing state for manual registration form to resolve "Cannot find name 'manualRecord'" errors
   const [manualRecord, setManualRecord] = useState({
     memberId: '',
     entradaTime: '',
@@ -80,21 +80,24 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
   // Manejar el auto-escaneo facial cuando FaceMode está activo
   useEffect(() => {
     if (isKioskMode && isFaceMode && kioskStatus === 'idle' && !isAnalyzingFace) {
+      // Trigger initial scan immediately
+      captureAndAnalyzeFace();
+      
       faceIntervalRef.current = setInterval(() => {
         captureAndAnalyzeFace();
-      }, 5000); 
+      }, 3000); 
     } else {
       if (faceIntervalRef.current) clearInterval(faceIntervalRef.current);
     }
     return () => { if (faceIntervalRef.current) clearInterval(faceIntervalRef.current); };
-  }, [isKioskMode, isFaceMode, kioskStatus, isAnalyzingFace]);
+  }, [isKioskMode, isFaceMode, kioskStatus === 'idle']);
 
   // Manejar el escaneo de QR cuando FaceMode NO está activo
   useEffect(() => {
     if (isKioskMode && !isFaceMode && kioskStatus === 'idle') {
       qrIntervalRef.current = setInterval(() => {
         scanQRCode();
-      }, 500); // Escanear QR cada 500ms
+      }, 500);
     } else {
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
     }
@@ -120,7 +123,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
         });
 
         if (code && code.data) {
-          // El código QR debe contener el ID del miembro
           const memberId = code.data.trim();
           const memberExists = members.some(m => m.id === memberId);
           
@@ -158,26 +160,41 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    
+    // Optimize: Use smaller fixed size for faster AI processing
+    const TARGET_SIZE = 512;
+    canvas.width = TARGET_SIZE;
+    canvas.height = TARGET_SIZE;
+    
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(video, 0, 0);
-      const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+      const minDim = Math.min(video.videoWidth, video.videoHeight);
+      const startX = (video.videoWidth - minDim) / 2;
+      const startY = (video.videoHeight - minDim) / 2;
       
-      const memberId = await identifyMemberByFace(base64Image, members);
+      ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, TARGET_SIZE, TARGET_SIZE);
+      const base64Image = canvas.toDataURL('image/jpeg', 0.5);
       
-      if (memberId && memberId !== "UNKNOWN") {
-        handleCheckIn(memberId);
-      } else {
-        // No reconocido, volver a idle tras un momento
-        setTimeout(() => {
-          setKioskStatus('idle');
+      try {
+        const memberId = await identifyMemberByFace(base64Image, members);
+        
+        if (memberId && memberId !== "UNKNOWN") {
+          handleCheckIn(memberId);
           setIsAnalyzingFace(false);
-        }, 2000);
+          return;
+        }
+      } catch (err) {
+        console.error("Face ID Error:", err);
       }
+      
+      setTimeout(() => {
+        setKioskStatus('idle');
+        setIsAnalyzingFace(false);
+      }, 1500);
+    } else {
+      setIsAnalyzingFace(false);
+      setKioskStatus('idle');
     }
-    setIsAnalyzingFace(false);
   };
 
   const handleCheckIn = (memberId: string) => {
@@ -293,7 +310,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
   if (isKioskMode) {
     return (
       <div className="fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden text-white animate-in fade-in duration-500 font-mono">
-        {/* Kiosk Header */}
         <div className="p-8 flex items-center justify-between border-b border-white/5 bg-gray-900/50 backdrop-blur-xl">
            <div className="flex items-center gap-4">
              <div className="bg-orange-500 p-3 rounded-2xl shadow-lg shadow-orange-500/20">
@@ -332,33 +348,24 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
            </div>
         </div>
 
-        {/* Main Interface */}
         <div className="flex-1 relative flex flex-col items-center justify-center">
-          
-          {/* Continuous Camera Feed */}
           <div className="absolute inset-0 z-0">
              <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover transition-all duration-1000 ${isFaceMode ? 'opacity-80' : 'opacity-30 grayscale'}`} />
              <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90"></div>
           </div>
-
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* HUD & Scan Overlay for Face ID */}
           {isFaceMode && kioskStatus === 'idle' && (
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                <div className="w-[450px] h-[550px] border-2 border-white/10 rounded-[120px] relative">
-                  {/* Focus Oval */}
                   <div className="absolute inset-4 border-[6px] border-orange-500/20 rounded-[100px] flex items-center justify-center">
                     <div className="w-full h-1 bg-orange-500/40 animate-scan absolute top-0 shadow-[0_0_30px_rgba(249,115,22,0.5)]"></div>
                   </div>
-                  
-                  {/* Corner Nodes */}
                   <div className="absolute -top-4 -left-4 w-12 h-12 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl"></div>
                   <div className="absolute -top-4 -right-4 w-12 h-12 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl"></div>
                   <div className="absolute -bottom-4 -left-4 w-12 h-12 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl"></div>
                   <div className="absolute -bottom-4 -right-4 w-12 h-12 border-b-4 border-r-4 border-orange-500 rounded-br-2xl"></div>
 
-                  {/* Biometric Stats HUD */}
                   <div className="absolute -left-48 top-20 space-y-4">
                      <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-40">
                         <p className="text-[8px] text-gray-400 uppercase tracking-widest mb-2">Iris Scanner</p>
@@ -386,21 +393,17 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
             </div>
           )}
 
-          {/* Idle View (QR) */}
           {kioskStatus === 'idle' && !isFaceMode && (
             <div className="relative z-10 w-full max-w-2xl px-10 text-center space-y-12 animate-in zoom-in-95 duration-500">
                <div className="space-y-4">
                  <h2 className="text-6xl font-black tracking-tighter leading-none italic uppercase">Escanea tu QR</h2>
                  <p className="text-gray-400 text-xl font-medium">Muestra tu código frente a la cámara</p>
                </div>
-
-               {/* QR Scanner Visual Overlay */}
                <div className="relative w-64 h-64 mx-auto border-4 border-orange-500/30 rounded-3xl overflow-hidden">
                   <div className="absolute inset-0 border-2 border-orange-500 rounded-2xl animate-pulse"></div>
                   <div className="absolute top-0 left-0 w-full h-1 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-scan"></div>
                   <QrCode size={120} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/10" />
                </div>
-
                <div className="relative group">
                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-orange-500" size={32} />
                  <input 
@@ -411,7 +414,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
-                 
                  {searchTerm && (
                    <div className="absolute top-full left-0 w-full mt-4 bg-gray-900/95 backdrop-blur-2xl rounded-[40px] border-4 border-white/10 overflow-hidden shadow-2xl z-50 font-sans">
                       {members.filter(m => m.nombre.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5).map(m => (
@@ -436,7 +438,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
             </div>
           )}
 
-          {/* Analyzing Face Feedback */}
           {kioskStatus === 'analyzing' && (
             <div className="relative z-10 text-center space-y-8 animate-in fade-in zoom-in duration-300">
                <div className="w-32 h-32 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto flex items-center justify-center">
@@ -449,7 +450,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
             </div>
           )}
 
-          {/* Success / Warning Overlay */}
           {(kioskStatus === 'success' || kioskStatus === 'warning') && kioskMember && (
             <div className={`absolute inset-0 z-50 flex items-center justify-center p-10 animate-in fade-in zoom-in-110 duration-300 ${
               kioskStatus === 'success' ? 'bg-green-600/95' : 'bg-orange-600/95'
@@ -461,7 +461,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                        {kioskStatus === 'success' ? <CheckCircle size={60} /> : <AlertTriangle size={60} className="text-orange-600" />}
                     </div>
                  </div>
-                 
                  <div className="space-y-4">
                    <h3 className="text-8xl font-black tracking-tighter leading-none uppercase">
                      {kioskStatus === 'success' ? '¡Hola, ' : '¡Atención, '}{kioskMember.nombre.split(' ')[0]}!
@@ -470,7 +469,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                      {kioskStatus === 'success' ? 'Identidad validada. Bienvenido.' : 'Por favor, pasa a recepción para regularizar tu cuenta.'}
                    </p>
                  </div>
-
                  {kioskStatus === 'success' && (
                    <div className="flex justify-center gap-6">
                       <div className="bg-black/20 backdrop-blur-md px-10 py-6 rounded-[30px] border border-white/10">
@@ -483,7 +481,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                       </div>
                    </div>
                  )}
-
                  <div className="pt-10">
                    <div className="inline-flex items-center gap-3 px-8 py-4 bg-black/30 rounded-full font-mono">
                       <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
@@ -498,11 +495,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
     );
   }
 
-  // Standard Dashboard Layout
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900">Asistencia Inteligente</h1>
@@ -527,8 +521,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: Scanner & Search */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white border-gray-100 p-8 rounded-[40px] border shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-6">
@@ -536,7 +528,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                 <h3 className="text-xl font-black text-gray-900">Validar Acceso</h3>
                 <Zap className="text-orange-500 animate-pulse" />
               </div>
-
               <div className="relative aspect-square rounded-[40px] bg-black overflow-hidden border-8 border-gray-50/5 group shadow-inner">
                 {isCameraActive ? (
                   <>
@@ -562,7 +553,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                   </div>
                 )}
               </div>
-
               <div className="relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={20} />
                 <input 
@@ -572,9 +562,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                
                 {searchTerm && (
-                  <div className="absolute top-full left-0 w-full mt-2 rounded-[30px] shadow-2xl border z-50 overflow-hidden max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-300 bg-white border-gray-100">
+                  <div className="absolute top-full left-0 w-full mt-2 rounded-[30px] shadow-2xl border z-50 overflow-hidden max-h-72 overflow-y-auto bg-white border-gray-100">
                     {members.filter(m => m.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(m => (
                       <button 
                         key={m.id}
@@ -598,7 +587,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
               </div>
             </div>
           </div>
-
           <div className="bg-white border-gray-100 p-8 rounded-[40px] border shadow-sm">
             <div className="flex justify-between items-center mb-6">
                <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">Aforo en Tiempo Real</h4>
@@ -615,21 +603,14 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
           </div>
         </div>
 
-        {/* Right Columns: Attendance Hub */}
         <div className="lg:col-span-8 space-y-8">
-          
-          {/* Active Members Section */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black flex items-center gap-3">
                 <div className="p-2 bg-green-100 text-green-600 rounded-xl"><Users size={20} /></div>
                 SOCIOS EN SALA ({activeAttendance.length})
               </h2>
-              <div className="flex gap-2 text-[10px] font-black bg-gray-900 text-white px-4 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-gray-900/10">
-                <Clock size={14} className="text-orange-500" /> Promedio: 54 Min
-              </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {activeAttendance.length === 0 ? (
                 <div className="col-span-2 p-16 text-center border-4 border-dashed border-gray-100 rounded-[50px] space-y-4">
@@ -641,7 +622,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                   const member = getMemberById(record.memberId);
                   if (!member) return null;
                   const duration = calculateDuration(record.entrada);
-                  
                   return (
                     <div key={record.id} className="bg-white border-gray-100 p-5 rounded-[30px] border shadow-sm flex items-center gap-4 group hover:shadow-xl hover:-translate-y-1 transition-all">
                       <div className="relative">
@@ -660,10 +640,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                         </div>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button 
-                           onClick={() => handleCheckOut(member.id)}
-                           className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-lg shadow-gray-900/20"
-                         >
+                         <button onClick={() => handleCheckOut(member.id)} className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all">
                            <LogOut size={18} />
                          </button>
                       </div>
@@ -674,7 +651,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
             </div>
           </section>
 
-          {/* History / Logs Section */}
           <section className="space-y-6 pt-6 border-t border-gray-100">
             <h2 className="text-xl font-black flex items-center gap-3 text-gray-900">
                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><History size={20} /></div>
@@ -726,22 +702,20 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
         </div>
       </div>
 
-      {/* Manual Registration Modal */}
       {isManualModalOpen && (
-        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl rounded-[50px] shadow-2xl overflow-hidden flex flex-col">
              <div className="bg-gray-900 p-10 text-white flex justify-between items-center relative overflow-hidden">
-                <div className="relative z-10">
+                <div>
                    <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
                      <Plus className="text-orange-500" size={32} /> Registro Manual
                    </h2>
                    <p className="text-gray-400 text-sm mt-1 font-medium">Añade o corrige una sesión de entrenamiento.</p>
                 </div>
-                <button onClick={() => setIsManualModalOpen(false)} className="relative z-10 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all">
+                <button onClick={() => setIsManualModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all">
                   <X size={24}/>
                 </button>
              </div>
-
              <form onSubmit={handleManualSubmit} className="p-10 space-y-8">
                 <div className="space-y-3">
                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">1. Seleccionar Socio</label>
@@ -757,7 +731,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                       ))}
                     </select>
                 </div>
-
                 <div className="grid grid-cols-2 gap-6">
                    <div className="space-y-3">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Hora de Entrada</label>
@@ -786,36 +759,25 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ members }) => {
                       />
                    </div>
                 </div>
-
-                <button 
-                  type="submit"
-                  className="w-full py-6 bg-orange-500 text-white rounded-[30px] font-black text-lg uppercase tracking-widest shadow-2xl shadow-orange-500/30 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-4"
-                >
-                  Confirmar Registro <ChevronRight size={24} />
+                <button type="submit" className="w-full py-6 bg-orange-500 text-white rounded-[30px] font-black text-lg uppercase tracking-widest">
+                  Confirmar Registro
                 </button>
              </form>
           </div>
         </div>
       )}
 
-      {/* Pop-up Alert (Common with previous version) */}
       {lastAlert && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[300] w-full max-w-lg p-8 rounded-[40px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] bg-gray-900 border border-white/10 text-white flex items-center gap-8 animate-in slide-in-from-top duration-500">
-          <div className="relative">
-            <img src={lastAlert.member.foto} className="w-24 h-24 rounded-[30px] object-cover ring-4 ring-orange-500 shadow-2xl" />
-            <div className="absolute -top-3 -right-3 bg-orange-500 p-2.5 rounded-2xl shadow-lg">
-               <CheckCircle size={24} />
-            </div>
-          </div>
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[300] w-full max-w-lg p-8 rounded-[40px] shadow-2xl bg-gray-900 text-white flex items-center gap-8 animate-in slide-in-from-top duration-500">
+          <img src={lastAlert.member.foto} className="w-24 h-24 rounded-[30px] object-cover ring-4 ring-orange-500 shadow-2xl" />
           <div className="flex-1">
             <h3 className="text-2xl font-black mb-1">¡Acceso Correcto!</h3>
             <p className="text-orange-400 font-black text-sm uppercase tracking-wider">{lastAlert.member.nombre}</p>
-            
             {lastAlert.types.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {lastAlert.types.map(t => (
                   <span key={t} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    t.includes('Cumpleaños') ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/20' : 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                    t.includes('Cumpleaños') ? 'bg-pink-500 text-white' : 'bg-red-500 text-white'
                   }`}>
                     {t.includes('Cumpleaños') ? <Cake size={12} /> : <AlertTriangle size={12} />}
                     {t}
