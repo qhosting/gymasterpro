@@ -29,6 +29,7 @@ import NutritionView from './components/NutritionView';
 import TrainingView from './components/TrainingView';
 import MemberProfile from './components/MemberProfile';
 import ClassesView from './components/ClassesView';
+import GymsView from './components/GymsView';
 import Login from './components/Login';
 import { fetchMembers, getMe, logout, fetchNotifications, fetchSystemSettings } from './services/apiService';
 import { SystemSettings as SystemSettingsType } from './types';
@@ -140,6 +141,7 @@ const App: React.FC = () => {
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'classes', label: 'Clases', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
+    { id: 'gyms', label: 'Sucursales', icon: MapPin, roles: [UserRole.SUPER_ADMIN] },
     { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
     { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'profile', label: 'Mi Perfil', icon: UserIcon, roles: [UserRole.MIEMBRO] },
@@ -157,6 +159,7 @@ const App: React.FC = () => {
       case 'training': return <TrainingView members={members} currentUser={currentUser} />;
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
       case 'classes': return <ClassesView currentUser={currentUser} />;
+      case 'gyms': return <GymsView currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
       case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} currentUser={currentUser} />;
@@ -178,7 +181,7 @@ const App: React.FC = () => {
   if (isLoadingAuth) {
     return (
       <div className="h-screen bg-gray-950 flex items-center justify-center">
-        <Loader2 className="text-orange-500 animate-spin" size={48} />
+        <Loader2 className="text-emerald-500 animate-spin" size={48} />
       </div>
     );
   }
@@ -206,8 +209,8 @@ const App: React.FC = () => {
         flex flex-col shadow-2xl
       `}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center font-black text-white text-xl">A</div>
-          {isSidebarOpen && <span className="font-black text-xl tracking-tight">AurumFIT</span>}
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-800 rounded-xl flex items-center justify-center font-black text-white text-xl border border-white/10 shadow-lg">A</div>
+          {isSidebarOpen && <span className="font-black text-xl tracking-tighter italic uppercase text-white">Aurum<span className="text-emerald-500">Fit</span></span>}
         </div>
 
         <nav className="flex-1 mt-6 px-4 space-y-2 custom-scrollbar overflow-y-auto">
@@ -219,7 +222,7 @@ const App: React.FC = () => {
                 if (window.innerWidth < 1024) setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
-                activeTab === item.id ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/20' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                activeTab === item.id ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/40 border border-white/5' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
               <item.icon size={22} />

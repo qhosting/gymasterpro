@@ -1008,6 +1008,38 @@ app.post('/api/gyms', authenticateToken, async (req, res) => {
     }
 });
 
+app.patch('/api/gyms/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'Solo Super Admin puede editar sucursales' });
+    }
+    try {
+        const gym = await prisma.gym.update({
+            where: { id: req.params.id },
+            data: req.body
+        });
+        res.json(gym);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar sucursal' });
+    }
+});
+
+app.delete('/api/gyms/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'Solo Super Admin puede eliminar sucursales' });
+    }
+    try {
+        // Verificar si hay clases asociadas antes de borrar
+        const classCount = await prisma.class.count({ where: { gymId: req.params.id } });
+        if (classCount > 0) {
+            return res.status(400).json({ error: 'No se puede eliminar una sucursal con clases activas' });
+        }
+        await prisma.gym.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Sucursal eliminada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar sucursal' });
+    }
+});
+
 // --- ENDPOINTS DE CLASES GRUPALES ---
 app.get('/api/classes', authenticateToken, async (req, res) => {
     const { gymId, categoria } = req.query;

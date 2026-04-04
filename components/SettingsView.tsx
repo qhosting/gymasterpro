@@ -33,8 +33,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onSettingsUpda
     openpaySandbox: true,
     pushEnabled: true,
     backupEnabled: true,
-    primaryColor: '#f97316',
-    darkMode: false
+    primaryColor: '#00695c',
+    darkMode: true
   });
 
   useEffect(() => {

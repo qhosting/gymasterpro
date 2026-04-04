@@ -1,7 +1,7 @@
 :root {
-  --primary-color: #f97316; /* Color primario dinámico */
-  --primary-color-hover: #ea580c;
-  --primary-color-shadow: rgba(249, 115, 22, 0.2);
+  --primary-color: #00695c; /* Emerald Elite */
+  --primary-color-hover: #004d40;
+  --primary-color-shadow: rgba(0, 105, 92, 0.2);
 }
 
 .dark {
