@@ -52,23 +52,43 @@ export const generateNotificationTemplate = async (type: string, memberName: str
   }
 };
 
-// Nueva función: Identificación Facial Inteligente
+// Nueva función: Identificación Facial Inteligente (con Soporte para Comparación de Referencias)
 export const identifyMemberByFace = async (base64Image: string, members: any[]) => {
-  const membersContext = members.map(m => ({
+  // Solo enviamos miembros que tengan foto para poder compararlos
+  const candidates = members
+    .filter(m => m.foto && m.foto.startsWith('data:')) // Solo los que tienen foto Base64 local
+    .slice(0, 15); // Máximo 15 referencias para optimizar latencia
+
+  const membersContext = candidates.map(m => ({
     id: m.id,
     nombre: m.nombre
   }));
 
-  const prompt = `Identify the member in the image from this list: ${JSON.stringify(membersContext)}. Return ONLY the member's ID if a clear match is found, otherwise return 'UNKNOWN'. Do not include any other text or explanations.`;
+  const additionalImages = candidates.map(m => m.foto);
+
+  const prompt = `Identify the member in Image 0 (Captured Face) by comparing it with the reference profile pictures provided in the subsequent images (Images 1 to ${additionalImages.length}).
+  
+  The candidates are (in order from Image 1):
+  ${membersContext.map((m, i) => `${i + 1}. ID: ${m.id} (${m.nombre})`).join('\n')}
+  
+  Return ONLY the member's ID string if a clear visual match is found, otherwise return 'UNKNOWN'. Do not include any text, numbers, or punctuation outside the ID itself.`;
 
   try {
     const response = await fetch(`${API_URL}/ai/process`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ prompt, type: 'vision', base64Image })
+        body: JSON.stringify({ 
+          prompt, 
+          type: 'vision', 
+          base64Image, 
+          additionalImages 
+        })
     });
     const data = await response.json();
-    return data.text?.trim() || "UNKNOWN";
+    const resultId = data.text?.trim() || "UNKNOWN";
+    
+    // Validar que el ID devuelto sea uno de nuestros candidatos
+    return members.some(m => m.id === resultId) ? resultId : "UNKNOWN";
   } catch (error) {
     console.error("Error en identificación facial via backend:", error);
     return "UNKNOWN";

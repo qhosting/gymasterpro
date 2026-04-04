@@ -1,13 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { 
-  Search, Filter, Plus, Edit2, Trash2, Camera, X, Check, 
+import { Search, Filter, Plus, Edit2, Trash2, Camera, X, Check, 
   Phone, Download, Calendar, User, ShieldAlert,
   ChevronRight, RefreshCw, Eye, Tag, CreditCard, SlidersHorizontal,
-  Dumbbell, Apple, Clock, Save, Loader2
+  Dumbbell, Apple, Clock, Save, Loader2, CheckCircle2
 } from 'lucide-react';
-import { Member, MembershipStatus, UserRole, NutritionAppointment, Plan } from '../types';
-import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments, fetchPlans } from '../services/apiService';
+import { Member, MembershipStatus, UserRole, NutritionAppointment, Plan, Routine } from '../types';
+import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments, fetchPlans, fetchRoutines } from '../services/apiService';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,6 +46,8 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
   const [editAppForm, setEditAppForm] = useState({ fecha: '', hora: '' });
   const [isEditMode, setIsEditMode] = useState(false);
   const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
+  const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
+  const [isLoadingRoutine, setIsLoadingRoutine] = useState(false);
 
   React.useEffect(() => {
     loadAppointments();
@@ -72,6 +73,31 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
       setAppointments(data);
     } catch (error) {
       console.error("Error loading appointments:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedMember) {
+      loadMemberRoutine(selectedMember.id);
+    } else {
+      setActiveRoutine(null);
+    }
+  }, [selectedMember]);
+
+  const loadMemberRoutine = async (memberId: string) => {
+    setIsLoadingRoutine(true);
+    try {
+      const routines = await fetchRoutines(memberId);
+      if (routines && routines.length > 0) {
+        setActiveRoutine(routines[0]);
+      } else {
+        setActiveRoutine(null);
+      }
+    } catch (error) {
+      console.error("Error loading member routine:", error);
+      setActiveRoutine(null);
+    } finally {
+      setIsLoadingRoutine(false);
     }
   };
 
@@ -606,7 +632,48 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                       ))
                     )}
                   </div>
-               </div>
+                </div>
+
+                {/* Workout Routine Section (NEW) */}
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                     <h4 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                       <Dumbbell size={18} className="text-orange-500" /> Plan de Entrenamiento (Rutina)
+                     </h4>
+                     {activeRoutine && (
+                       <span className="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-[10px] font-black uppercase">
+                         {activeRoutine.nombre}
+                       </span>
+                     )}
+                   </div>
+                   
+                   {isLoadingRoutine ? (
+                     <div className="flex items-center justify-center p-8">
+                       <Loader2 size={24} className="text-orange-200 animate-spin" />
+                     </div>
+                   ) : activeRoutine ? (
+                     <div className="space-y-3">
+                       {activeRoutine.exercises.map((ex, idx) => (
+                         <div key={idx} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-orange-50/50 transition-colors">
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-lg bg-gray-900 text-white font-black text-xs flex items-center justify-center group-hover:scale-110 transition-transform">
+                               {idx + 1}
+                             </div>
+                             <div>
+                               <p className="text-xs font-black text-gray-900">{ex.nombre}</p>
+                               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{ex.series}x{ex.reps} • {ex.descanso}</p>
+                             </div>
+                           </div>
+                           <CheckCircle2 size={16} className="text-gray-200 group-hover:text-emerald-500 transition-colors" />
+                         </div>
+                       ))}
+                     </div>
+                   ) : (
+                     <div className="p-8 bg-gray-50 rounded-[30px] border border-dashed border-gray-200 text-center">
+                       <p className="text-xs font-bold text-gray-400 italic">No hay rutina activa asignada.</p>
+                     </div>
+                   )}
+                </div>
 
                {/* Activity Logs */}
                <div className="space-y-6">
@@ -638,7 +705,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                     nombre: selectedMember.nombre,
                     email: selectedMember.email,
                     telefono: selectedMember.telefono,
-                    planId: selectedMember.planId,
+                    planId: selectedMember.planId || (selectedMember as any).plan?.id || '',
                     objetivo: selectedMember.objetivo || 'Pérdida de peso',
                     contactoEmergencia: selectedMember.contactoEmergencia || '',
                     telefonoEmergencia: selectedMember.telefonoEmergencia || '',
@@ -795,7 +862,7 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Plan de Entrenamiento</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Plan de Membresía</label>
                   <div className="relative">
                     <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <select 

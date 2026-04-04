@@ -977,11 +977,17 @@ app.post('/api/ai/process', authenticateToken, async (req, res) => {
         const genAI = new GoogleGenAI(settings.geminiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        if (type === 'vision' && base64Image) {
-            const result = await model.generateContent([
-                prompt,
-                { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/jpeg' } }
-            ]);
+        if (type === 'vision') {
+            const contents = [prompt];
+            if (base64Image) {
+                contents.push({ inlineData: { data: base64Image.split(',')[1], mimeType: 'image/jpeg' } });
+            }
+            if (req.body.additionalImages && Array.isArray(req.body.additionalImages)) {
+                req.body.additionalImages.forEach((img) => {
+                    contents.push({ inlineData: { data: img.split(',')[1], mimeType: 'image/jpeg' } });
+                });
+            }
+            const result = await model.generateContent(contents);
             return res.json({ text: result.response.text() });
         }
 
