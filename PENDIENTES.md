@@ -1,4 +1,4 @@
-# Pendientes y Roadmap - GymMaster PRO
+# Pendientes y Roadmap - AurumFit
 
 Lista de tareas, mejoras y módulos faltantes para la evolución del sistema.
 

@@ -18,9 +18,9 @@ export default defineConfig(({ mode }) => {
           registerType: 'autoUpdate',
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-icon.png'],
           manifest: {
-            name: 'GymMaster Pro',
-            short_name: 'GymMaster',
-            description: 'Sistema de Gestión de Gimnasios Elite',
+            name: 'AurumFit',
+            short_name: 'AurumFit',
+            description: 'Sistema de Gestión Fitness Elite - aurumfit.mx',
             theme_color: '#f97316',
             background_color: '#ffffff',
             display: 'standalone',

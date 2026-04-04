@@ -1,6 +1,6 @@
 import { openDB, IDBPDatabase } from 'idb';
 
-const DB_NAME = 'GymMasterOffline';
+const DB_NAME = 'AurumFitOffline';
 const STORE_NAMES = ['members', 'transactions', 'notifications', 'plans', 'settings'];
 
 let dbPromise: Promise<IDBPDatabase> | null = null;

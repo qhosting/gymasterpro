@@ -28,6 +28,7 @@ import SettingsView from './components/SettingsView';
 import NutritionView from './components/NutritionView';
 import TrainingView from './components/TrainingView';
 import MemberProfile from './components/MemberProfile';
+import ClassesView from './components/ClassesView';
 import Login from './components/Login';
 import { fetchMembers, getMe, logout, fetchNotifications, fetchSystemSettings } from './services/apiService';
 import { SystemSettings as SystemSettingsType } from './types';
@@ -138,6 +139,7 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'classes', label: 'Clases', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
     { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
     { id: 'nutrition', label: 'Nutrición', icon: Apple, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'profile', label: 'Mi Perfil', icon: UserIcon, roles: [UserRole.MIEMBRO] },
@@ -154,6 +156,7 @@ const App: React.FC = () => {
       case 'attendance': return <AttendanceTracker members={members} />;
       case 'training': return <TrainingView members={members} currentUser={currentUser} />;
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
+      case 'classes': return <ClassesView currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
       case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} currentUser={currentUser} />;
@@ -203,10 +206,8 @@ const App: React.FC = () => {
         flex flex-col shadow-2xl
       `}>
         <div className="p-6 flex items-center gap-3">
-          <div className="bg-orange-500 w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
-            <img src="/pwa-icon.png" alt="Logo" className="w-full h-full object-cover scale-110" />
-          </div>
-          {isSidebarOpen && <span className="font-black text-xl tracking-tight">GymMaster<span className="text-orange-500">PRO</span></span>}
+          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center font-black text-white text-xl">A</div>
+          {isSidebarOpen && <span className="font-black text-xl tracking-tight">AurumFIT</span>}
         </div>
 
         <nav className="flex-1 mt-6 px-4 space-y-2 custom-scrollbar overflow-y-auto">

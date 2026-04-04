@@ -142,7 +142,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
           deviceSessionId,
           amount: paymentData.amount,
           memberId: paymentData.memberId,
-          description: `Pago de ${paymentData.type} - GymMasterPro`
+          description: `Pago de ${paymentData.type} - AurumFit`
         });
 
         finalTx = openpayResponse.transaction;
@@ -213,11 +213,11 @@ const FinanceView: React.FC<FinanceViewProps> = ({ members, setMembers }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header & Quick Action */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Finanzas & Membresías</h1>
-          <p className="text-gray-500">Control total de ingresos, planes y flujo de caja.</p>
-        </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Finanzas <span className="text-orange-500">AurumFit</span></h1>
+            <p className="text-gray-500 font-medium italic">Gestión de ingresos, planes de membresía y facturación.</p>
+          </div>
         <div className="flex gap-3">
           <button 
             onClick={() => generateFinanceReportPDF(transactions, { totalIngresos: totalRecaudado })}

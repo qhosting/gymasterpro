@@ -1,6 +1,6 @@
-# Funciones del Sistema - GymMaster PRO
+# Funciones del Sistema - AurumFit PRO
 
-Este documento detalla las funcionalidades actualmente implementadas en el sistema GymMaster PRO.
+Este documento detalla las funcionalidades actualmente implementadas en el sistema AurumFit PRO.
 
 ## 1. Gestión de Miembros
 - **Listado Completo**: Visualización de todos los socios con buscador y filtros por estado (Activo, Vencido, Pendiente).

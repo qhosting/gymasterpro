@@ -40,7 +40,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <img src="/pwa-icon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
-            GymMaster<span className="text-orange-500">PRO</span>
+            Aurum<span className="text-orange-500">FIT</span>
           </h1>
           <p className="text-gray-400 font-medium">Gestión inteligente para tu gimnasio</p>
         </div>
@@ -58,7 +58,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 <input 
                   type="text" 
                   required
-                  placeholder="admin@gymmaster.com o 442..."
+                  placeholder="admin@aurumfit.mx o 442..."
                   className="w-full pl-14 pr-6 py-5 bg-white/5 border-2 border-transparent rounded-[24px] text-white font-bold outline-none focus:border-orange-500 focus:bg-white/10 transition-all placeholder:text-gray-600"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

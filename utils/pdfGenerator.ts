@@ -20,9 +20,9 @@ export const generateReceiptPDF = (transaction: Transaction, member: Member) => 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text('GymMaster', 10, 20);
+  doc.text('Aurum', 10, 20);
   doc.setTextColor(orange[0], orange[1], orange[2]);
-  doc.text('PRO', 55, 20);
+  doc.text('Fit', 35, 20);
 
   doc.setFontSize(10);
   doc.setTextColor(255, 255, 255);
@@ -72,7 +72,7 @@ export const generateReceiptPDF = (transaction: Transaction, member: Member) => 
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
   doc.text('Este documento es un comprobante de pago electrónico.', 10, 140);
-  doc.text('GymMaster PRO - Aurum Capital', 10, 144);
+  doc.text('AurumFit - Fitness Elite', 10, 144);
 
   doc.save(`Recibo_${transaction.id.substring(0, 8)}.pdf`);
 };
@@ -88,7 +88,7 @@ export const generateFinanceReportPDF = (transactions: Transaction[], stats: any
   doc.rect(0, 0, 210, 40, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
-  doc.text('GymMaster PRO', 10, 25);
+  doc.text('AurumFit', 10, 25);
   doc.setFontSize(12);
   doc.text('REPORTE FINANCIERO MENSUAL', 140, 25);
 

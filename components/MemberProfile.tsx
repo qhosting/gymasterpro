@@ -138,7 +138,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
           
           <div className="flex-1 text-center md:text-left space-y-4">
             <div>
-              <h1 className="text-4xl font-black text-gray-900 tracking-tighter">{profile?.nombre || 'Socio'}</h1>
+                <h3 className="text-xl font-black text-gray-900 tracking-tight">AurumFit <span className="text-orange-500">Member Card</span></h3>
               <p className="text-orange-500 font-black uppercase tracking-widest text-sm mt-1">Socio Elite • ID: {profile?.id || '---'}</p>
             </div>
             

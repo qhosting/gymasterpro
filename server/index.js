@@ -25,7 +25,7 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gym-master-pro-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'aurum-fit-elite-secret-key-2024';
 
 // Redis Setup
 const redisClient = createClient({
@@ -634,7 +634,7 @@ app.post('/api/payments/openpay', authenticateToken, async (req, res) => {
             method: 'card',
             amount: parseFloat(amount),
             currency: 'MXN',
-            description: description || 'Pago de Membresía GymMaster',
+            description: description || 'Pago de Membresía AurumFit',
             device_session_id: deviceSessionId,
             customer: {
                 name: member.user.nombre,
@@ -986,9 +986,161 @@ app.get('/api/whatsapp/status', authenticateToken, async (req, res) => {
     }
 });
 
-// --- ENDPOINTS DE NOTIFICACIONES ---
+// --- ENDPOINTS DE SUCURSALES (GYMS) ---
+app.get('/api/gyms', async (req, res) => {
+    try {
+        const gyms = await prisma.gym.findMany();
+        res.json(gyms);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener sucursales' });
+    }
+});
 
-// Obtener todas las notificaciones
+app.post('/api/gyms', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    try {
+        const gym = await prisma.gym.create({ data: req.body });
+        res.status(201).json(gym);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear sucursal' });
+    }
+});
+
+// --- ENDPOINTS DE CLASES GRUPALES ---
+app.get('/api/classes', authenticateToken, async (req, res) => {
+    const { gymId, categoria } = req.query;
+    try {
+        const classes = await prisma.class.findMany({
+            where: {
+                ...(gymId ? { gymId } : {}),
+                ...(categoria ? { categoria } : {})
+            },
+            include: { 
+                instructor: { select: { nombre: true, foto: true } },
+                gym: true,
+                bookings: true
+            }
+        });
+        res.json(classes);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener clases' });
+    }
+});
+
+app.post('/api/classes', authenticateToken, async (req, res) => {
+    const role = req.user.role;
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'INSTRUCTOR') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    try {
+        const groupClass = await prisma.class.create({ 
+            data: {
+                ...req.body,
+                instructorId: req.body.instructorId || req.user.id
+            } 
+        });
+        res.status(201).json(groupClass);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear clase' });
+    }
+});
+
+// --- ENDPOINTS DE RESERVAS (BOOKINGS) ---
+app.post('/api/classes/book', authenticateToken, async (req, res) => {
+    const { classId, fecha } = req.body;
+    const memberId = req.user.id;
+
+    try {
+        const groupClass = await prisma.class.findUnique({
+            where: { id: classId },
+            include: { bookings: { where: { fecha: new Date(fecha), status: 'RESERVED' } } }
+        });
+
+        if (groupClass.bookings.length >= groupClass.capacidad) {
+            return res.status(400).json({ error: 'Clase llena' });
+        }
+
+        const booking = await prisma.classBooking.create({
+            data: {
+                classId,
+                memberId,
+                fecha: new Date(fecha),
+                status: 'RESERVED'
+            }
+        });
+
+        res.status(201).json(booking);
+    } catch (error) {
+        if (error.code === 'P2002') return res.status(400).json({ error: 'Ya tienes una reserva para esta fecha' });
+        res.status(500).json({ error: 'Error al reservar clase' });
+    }
+});
+
+app.get('/api/classes/my-bookings', authenticateToken, async (req, res) => {
+    try {
+        const bookings = await prisma.classBooking.findMany({
+            where: { memberId: req.user.id },
+            include: { clase: { include: { gym: true, instructor: true } } },
+            orderBy: { fecha: 'asc' }
+        });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener tus reservas' });
+    }
+});
+
+app.patch('/api/classes/bookings/:id/cancel', authenticateToken, async (req, res) => {
+    try {
+        const booking = await prisma.classBooking.findUnique({
+            where: { id: req.params.id },
+            include: { clase: { include: { gym: true } } }
+        });
+
+        if (!booking) return res.status(404).json({ error: 'Reserva no encontrada' });
+
+        const window = booking.clase.cancellationWindowOverride || booking.clase.gym.cancellationWindow;
+        const classDate = new Date(booking.fecha);
+        const limitDate = new Date(classDate.getTime() - (window * 60 * 60 * 1000));
+
+        if (new Date() > limitDate && req.user.role === 'MIEMBRO') {
+            return res.status(400).json({ error: `No puedes cancelar con menos de ${window} horas de anticipación` });
+        }
+
+        const updated = await prisma.classBooking.update({
+            where: { id: req.params.id },
+            data: { status: 'CANCELED' }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al cancelar reserva' });
+    }
+});
+
+// --- DIARIO DEL COACH ---
+app.get('/api/instructor/diary', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'INSTRUCTOR') return res.status(403).json({ error: 'Solo para coaches' });
+    try {
+        const diary = await prisma.class.findMany({
+            where: { instructorId: req.user.id },
+            include: { 
+                gym: true,
+                bookings: { 
+                    where: { status: 'RESERVED' },
+                    include: { miembro: { include: { user: true } } }
+                }
+            },
+            orderBy: { diaSemana: 'asc' }
+        });
+        res.json(diary);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener diario' });
+    }
+});
+
+// --- ENDPOINTS DE NOTIFICACIONES ---
 app.get('/api/notifications', authenticateToken, async (req, res) => {
     try {
         const notifications = await prisma.notification.findMany({
@@ -1002,7 +1154,6 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
     }
 });
 
-// Crear notificación (Log)
 app.post('/api/notifications', authenticateToken, async (req, res) => {
     const { memberId, tipo, mensaje, status } = req.body;
     try {
@@ -1015,7 +1166,6 @@ app.post('/api/notifications', authenticateToken, async (req, res) => {
     }
 });
 
-// Marcar como leída
 app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { read } = req.body;
@@ -1030,10 +1180,8 @@ app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// Serve static files from the Vite build
-app.use(express.static(path.join(__dirname, '../dist')));
-
 // SPA Catch-all: Send all other requests to index.html
+app.use(express.static(path.join(__dirname, '../dist')));
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });

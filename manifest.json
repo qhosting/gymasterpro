@@ -1,7 +1,7 @@
 {
-  "name": "GymMaster Pro",
-  "short_name": "GymMaster",
-  "description": "Sistema de gestión para gimnasios de alto rendimiento powered by Aurum Capital",
+  "name": "AurumFit",
+  "short_name": "AurumFit",
+  "description": "Sistema de gestión fitness de alto rendimiento - aurumfit.mx",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111827",

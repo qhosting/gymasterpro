@@ -19,7 +19,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onSettingsUpda
   const [isSaving, setIsSaving] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [settings, setSettings] = useState({
-    gymName: 'GymMaster Pro',
+    gymName: 'AurumFit',
     aforoMaximo: 50,
     direccion: '',
     horario: '',
@@ -430,7 +430,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onSettingsUpda
                   </div>
                   <h2 className="text-3xl font-black tracking-tight">Lleva tu gimnasio a todas partes</h2>
                   <p className="text-gray-400 max-w-lg font-medium">
-                    GymMaster Pro está optimizado para funcionar como una aplicación nativa en Android y iOS. 
+                    AurumFit está optimizado para funcionar como una aplicación nativa en Android y iOS. 
                     Instálala ahora para recibir notificaciones push y acceso rápido.
                   </p>
                   

@@ -37,13 +37,11 @@ export interface Member extends User {
   rachaDias?: number;
 }
 
-// Fix: Added missing AttendanceRecord interface for tracking gym entry/exit
 export interface AttendanceRecord {
   memberId: string;
   entrada: Date;
 }
 
-// Fix: Added missing Transaction interface for financial record keeping
 export interface Transaction {
   id: string;
   memberId: string;
@@ -137,4 +135,55 @@ export interface SystemSettings {
   backupEnabled: boolean;
   primaryColor: string;
   darkMode: boolean;
+}
+
+// NUEVOS TIPOS PARA CLASES Y SUCURSALES
+export enum ClassCategory {
+  PESAS = 'PESAS',
+  SPIN = 'SPIN',
+  YOGA = 'YOGA',
+  ZUMBA = 'ZUMBA',
+  BOX = 'BOX',
+  PILATES = 'PILATES',
+  FUNCIONAL = 'FUNCIONAL'
+}
+
+export enum BookingStatus {
+  RESERVED = 'RESERVED',
+  CANCELED = 'CANCELED',
+  ATTENDED = 'ATTENDED'
+}
+
+export interface Gym {
+  id: string;
+  nombre: string;
+  direccion?: string;
+  cancellationWindow: number; // Horas
+}
+
+export interface GroupClass {
+  id: string;
+  nombre: string;
+  categoria: ClassCategory;
+  instructorId: string;
+  gymId: string;
+  diaSemana: number; // 0-6
+  horaInicio: string; // "HH:mm"
+  horaFin: string;
+  capacidad: number;
+  cancellationWindowOverride?: number;
+  instructor?: User;
+  gym?: Gym;
+  bookings?: ClassBooking[];
+}
+
+export interface ClassBooking {
+  id: string;
+  classId: string;
+  memberId: string;
+  fecha: string;
+  status: BookingStatus;
+  createdAt: string;
+  clase?: GroupClass;
+  miembro?: Member;
 }

@@ -11,7 +11,7 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
     id: 'welcome',
     name: 'Bienvenida Nuevo Socio',
     category: 'registro',
-    content: '¡Hola {nombre}! 🏋️‍♂️ Te damos la más cordial bienvenida a *GymMaster Pro*. Estamos muy felices de que te unas a nuestra familia. Ya puedes acceder a la App para ver tus rutinas y progreso. ¡A darle con todo! 💪'
+    content: '¡Hola {nombre}! 🏋️‍♂️ Te damos la más cordial bienvenida a *AurumFit*. Estamos muy felices de que te unas a nuestra familia. Ya puedes acceder a la App para ver tus rutinas y progreso. ¡A darle con todo! 💪'
   },
   {
     id: 'expiration_warning',
@@ -23,7 +23,7 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
     id: 'payment_confirmation',
     name: 'Confirmación de Pago',
     category: 'pago',
-    content: '¡Muchas gracias {nombre}! Confirmamos la recepción de tu pago por ${monto}. ✅ Tu membresía ha sido actualizada correctamente hasta el {nueva_fecha}. ¡Gracias por ser parte de GymMaster Pro! 🚀'
+    content: '¡Muchas gracias {nombre}! Confirmamos la recepción de tu pago por ${monto}. ✅ Tu membresía ha sido actualizada correctamente hasta el {nueva_fecha}. ¡Gracias por ser parte de AurumFit! 🚀'
   },
   {
     id: 'reengagement',

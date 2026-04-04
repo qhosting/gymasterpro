@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, CreditCard, Clock, BrainCircuit, 
   Calendar, Apple, ChevronRight, Activity, Zap, 
   Target, Award, Dumbbell, ArrowUpRight, ArrowDownRight,
-  Eye, Package, UserCheck, ShieldCheck, Heart
+  Eye, Package, UserCheck, ShieldCheck, Heart, MapPin
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -21,6 +21,8 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
   const [dataAsistencia, setDataAsistencia] = useState<any[]>([]);
   const [activeAttendance, setActiveAttendance] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [coachDiary, setCoachDiary] = useState<any[]>([]);
+  const [myBookings, setMyBookings] = useState<any[]>([]);
   
   const role = currentUser.role;
   const isSuper = role === UserRole.SUPER_ADMIN;
@@ -52,6 +54,27 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
       }
     };
 
+    const fetchCoachData = async () => {
+      if (isInstructor) {
+        try {
+          const res = await fetch('/api/instructor/diary');
+          const data = await res.json();
+          setCoachDiary(data);
+        } catch (err) {
+          console.error("Error fetching coach diary:", err);
+        }
+      }
+      if (isMiembro) {
+        try {
+          const res = await fetch('/api/classes/my-bookings');
+          const data = await res.json();
+          setMyBookings(data);
+        } catch (err) {
+          console.error("Error fetching my bookings:", err);
+        }
+      }
+    };
+
     const fetchAiAnalysis = async () => {
       if (isAdmin || isInstructor || isNutri) {
         setIsAiLoading(true);
@@ -62,6 +85,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
     };
 
     fetchData();
+    fetchCoachData();
     fetchAiAnalysis();
   }, [members, role]);
 
@@ -104,7 +128,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-gray-900">GymMaster Pro <span className="text-orange-500">Command Center</span></h1>
+            <h1 className="text-3xl font-black tracking-tight text-gray-900">AurumFit <span className="text-orange-500">Command Center</span></h1>
             <p className="text-gray-500 font-medium italic">Resumen ejecutivo del estado de la sucursal.</p>
           </div>
           <div className="bg-white px-6 py-3 rounded-2xl border shadow-sm flex items-center gap-3">
@@ -230,7 +254,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
       <div className="space-y-8 animate-in fade-in duration-500">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900">Training <span className="text-blue-500">Hub</span></h1>
-          <p className="text-gray-500 font-medium italic">Gestión de rutinas y actividad en sala.</p>
+          <p className="text-gray-500 font-medium italic">Gestión de rutinas y diario de clases.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -241,27 +265,60 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-             <h3 className="text-xl font-black mb-8 flex items-center gap-3"><Users className="text-blue-500" /> Miembros en Sala</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {activeAttendance.length > 0 ? activeAttendance.map(att => {
-                  const m = members.find(mem => mem.id === att.memberId);
-                  return (
-                    <div key={att.id} className="p-4 bg-gray-50 rounded-3xl flex items-center gap-4">
-                       <img src={m?.foto} className="w-12 h-12 rounded-2xl object-cover" />
-                       <div>
-                          <p className="font-black text-sm">{m?.nombre}</p>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{m?.objetivo || 'ACONDICIONAMIENTO'}</p>
-                       </div>
-                    </div>
-                  );
-                }) : <p className="col-span-2 py-10 text-center text-gray-400 italic">No hay socios en sala.</p>}
-             </div>
-          </div>
-          <div className="bg-blue-600 p-8 rounded-[40px] text-white">
-             <h3 className="text-xl font-black italic mb-4">Instructor Tips AI</h3>
-             <p className="text-sm font-medium opacity-90 leading-relaxed italic">"{aiSummary.slice(0, 150)}..."</p>
-          </div>
+           <div className="lg:col-span-2 space-y-8">
+              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+                 <h3 className="text-xl font-black mb-8 flex items-center gap-3"><Calendar className="text-blue-500" /> Mi Diario de Clases</h3>
+                 <div className="space-y-4">
+                    {coachDiary.length > 0 ? coachDiary.map(c => (
+                      <div key={c.id} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 hover:border-blue-500/30 transition-all group">
+                         <div className="flex justify-between items-start">
+                            <div>
+                               <h4 className="font-black text-lg text-gray-900">{c.nombre}</h4>
+                               <div className="flex gap-4 mt-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                  <span className="flex items-center gap-1"><Clock size={12} className="text-blue-500"/> {c.horaInicio} - {c.horaFin}</span>
+                                  <span className="flex items-center gap-1"><MapPin size={12} className="text-orange-500"/> {c?.gym?.nombre}</span>
+                               </div>
+                            </div>
+                            <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-blue-100 text-blue-600 font-black text-xs">
+                               {c.bookings?.length || 0} / {c.capacidad} ASISTENTES
+                            </div>
+                         </div>
+                         <div className="mt-6 flex flex-wrap gap-2">
+                            {c.bookings?.map((b: any) => (
+                               <div key={b.id} className="flex items-center gap-2 bg-white p-1 pr-3 rounded-full border border-gray-100 shadow-sm">
+                                  <img src={b.miembro?.user?.foto} className="w-6 h-6 rounded-full object-cover" />
+                                  <span className="text-[10px] font-black text-gray-700">{b.miembro?.user?.nombre.split(' ')[0]}</span>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                    )) : <p className="py-10 text-center text-gray-400 italic">No tienes clases programadas.</p>}
+                 </div>
+              </div>
+
+              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+                 <h3 className="text-xl font-black mb-8 flex items-center gap-3"><Users className="text-blue-500" /> Miembros en Sala</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {activeAttendance.length > 0 ? activeAttendance.map(att => {
+                      const m = members.find(mem => mem.id === att.memberId);
+                      return (
+                        <div key={att.id} className="p-4 bg-gray-50 rounded-3xl flex items-center gap-4">
+                          <img src={m?.foto} className="w-12 h-12 rounded-2xl object-cover" />
+                          <div>
+                             <p className="font-black text-sm">{m?.nombre}</p>
+                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{m?.objetivo || 'ACONDICIONAMIENTO'}</p>
+                          </div>
+                        </div>
+                      );
+                    }) : <p className="col-span-2 py-10 text-center text-gray-400 italic">No hay socios en sala.</p>}
+                 </div>
+              </div>
+           </div>
+
+           <div className="bg-blue-600 p-8 rounded-[40px] text-white">
+              <h3 className="text-xl font-black italic mb-4">Instructor Tips AI</h3>
+              <p className="text-sm font-medium opacity-90 leading-relaxed italic">"{aiSummary.slice(0, 150)}..."</p>
+           </div>
         </div>
       </div>
     );
@@ -271,7 +328,7 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-gray-900">Nutrition <span className="text-emerald-500">Center</span></h1>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Centro de Control <span className="text-emerald-500">AurumFit</span></h1>
           <p className="text-gray-500 font-medium italic">Agenda de citas y monitoreo de pacientes.</p>
         </div>
 
@@ -283,29 +340,29 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-             <h3 className="text-xl font-black mb-8">Agenda de Hoy</h3>
-             <div className="space-y-4">
-                {appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).length > 0 ? appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).map(app => {
-                  const m = members.find(mem => mem.id === app.memberId);
-                  return (
-                    <div key={app.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl transition-all">
-                       <div className="flex items-center gap-4">
-                          <img src={m?.foto} className="w-14 h-14 rounded-2xl object-cover" />
-                          <div>
-                             <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{m?.nombre}</p>
-                             <span className="text-[10px] font-black text-emerald-600 bg-white px-2 py-0.5 rounded-lg border border-emerald-100">{app.hora} HS</span>
-                          </div>
-                       </div>
-                    </div>
-                  );
-                }) : <p className="py-10 text-center text-gray-400 italic">No hay citas hoy.</p>}
-             </div>
-          </div>
-          <div className="bg-emerald-600 p-8 rounded-[40px] text-white">
-             <h3 className="text-xl font-black mb-6">Patient Insights</h3>
-             <p className="text-xs italic opacity-80 leading-relaxed italic">"{aiSummary.slice(0, 100)}..."</p>
-          </div>
+           <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+              <h3 className="text-xl font-black mb-8">Agenda de Hoy</h3>
+              <div className="space-y-4">
+                 {appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).length > 0 ? appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).map(app => {
+                   const m = members.find(mem => mem.id === app.memberId);
+                   return (
+                     <div key={app.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl transition-all">
+                        <div className="flex items-center gap-4">
+                           <img src={m?.foto} className="w-14 h-14 rounded-2xl object-cover" />
+                           <div>
+                              <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{m?.nombre}</p>
+                              <span className="text-[10px] font-black text-emerald-600 bg-white px-2 py-0.5 rounded-lg border border-emerald-100">{app.hora} HS</span>
+                           </div>
+                        </div>
+                     </div>
+                   );
+                 }) : <p className="py-10 text-center text-gray-400 italic">No hay citas hoy.</p>}
+              </div>
+           </div>
+           <div className="bg-emerald-600 p-8 rounded-[40px] text-white">
+              <h3 className="text-xl font-black mb-6">Patient Insights</h3>
+              <p className="text-xs italic opacity-80 leading-relaxed italic">"{aiSummary.slice(0, 100)}..."</p>
+           </div>
         </div>
       </div>
     );
@@ -341,26 +398,66 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            <div className="lg:col-span-2 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <button onClick={() => onNavigate('classes')} className="group text-left bg-gradient-to-br from-orange-500 to-amber-600 text-white p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02] shadow-xl shadow-orange-500/20">
+                    <div className="absolute top-0 right-0 p-8 opacity-20"><Calendar size={120} /></div>
+                    <div className="relative z-10 text-left">
+                       <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-6"><Calendar size={28} /></div>
+                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight">Clases Grupales</h3>
+                       <p className="text-white/80 text-xs font-black uppercase tracking-widest flex items-center gap-1">Reservar Lugar <ChevronRight size={16} /></p>
+                    </div>
+                 </button>
                  <button onClick={() => onNavigate('training')} className="group text-left bg-gray-900 text-white p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02]">
                     <div className="absolute top-0 right-0 p-8 opacity-10"><Dumbbell size={120} /></div>
                     <div className="relative z-10 text-left">
                        <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-6"><Zap size={28} /></div>
-                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight">Entrenamiento</h3>
+                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight">Mi Rutina</h3>
                        <p className="text-orange-500 text-xs font-black uppercase tracking-widest flex items-center gap-1">Entrenar Ahora <ChevronRight size={16} /></p>
                     </div>
                  </button>
-                 <button onClick={() => onNavigate('nutrition')} className="group text-left bg-white border border-gray-100 p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02]">
-                    <div className="absolute top-0 right-0 p-8 opacity-5"><Apple size={120} /></div>
-                    <div className="relative z-10 text-left">
-                       <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-white"><Apple size={28} /></div>
-                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight text-gray-900">Nutrición</h3>
-                       <p className="text-emerald-500 text-xs font-black uppercase tracking-widest flex items-center gap-1">Ver Mi Dieta <ChevronRight size={16} /></p>
-                    </div>
-                 </button>
               </div>
+
+              {myBookings.filter(b => b.status === 'RESERVED').length > 0 && (
+                <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+                   <h3 className="text-xl font-black mb-8 flex items-center gap-3 text-gray-900">
+                     <Clock className="text-orange-500" /> Mis Próximas Clases
+                   </h3>
+                   <div className="space-y-4">
+                      {myBookings.filter(b => b.status === 'RESERVED').slice(0, 3).map(booking => (
+                        <div key={booking.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl group">
+                           <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm font-black border border-orange-100">
+                                 {booking.clase?.nombre.charAt(0)}
+                              </div>
+                              <div>
+                                 <p className="font-black text-gray-900">{booking.clase?.nombre}</p>
+                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                   {booking.clase?.horaInicio} - {booking.clase?.gym?.nombre}
+                                 </p>
+                              </div>
+                           </div>
+                           <div className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-100">
+                              Confirmada
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
            </div>
            
            <div className="space-y-8">
+              <button 
+                onClick={() => onNavigate('nutrition')}
+                className="w-full group text-left bg-white border border-gray-100 p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02]"
+              >
+                  <div className="absolute top-0 right-0 p-8 opacity-5"><Apple size={80} /></div>
+                  <div className="relative z-10 text-left">
+                     <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-white shadow-lg shadow-emerald-500/20"><Apple size={24} /></div>
+                     <h3 className="text-xl font-black mb-1 uppercase italic tracking-tight text-gray-900">Nutrición</h3>
+                     <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">Mi Dieta <ChevronRight size={14} /></p>
+                  </div>
+              </button>
+
               <div className="bg-gradient-to-br from-indigo-900 to-indigo-700 p-8 rounded-[40px] text-white relative shadow-2xl">
                  <h3 className="text-sm font-black uppercase tracking-widest mb-4">Próxima Medalla</h3>
                  <p className="text-xl font-black italic uppercase">Guerrero de Cobre</p>
