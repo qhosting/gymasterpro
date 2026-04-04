@@ -1338,6 +1338,24 @@ app.post('/api/settings', authenticateToken, async (req, res) => {
     }
 });
 
+// --- SERVIR FRONTEND (PRODUCCIÓN) ---
+const distPath = path.join(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(distPath, 'index.html'));
+        }
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.json({ 
+            status: 'online', 
+            message: 'AurumFit API is running. If you want to see the UI, make sure to run "npm run build" first.' 
+        });
+    });
+}
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
