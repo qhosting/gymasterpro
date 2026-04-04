@@ -1069,7 +1069,7 @@ app.get('/api/staff', authenticateToken, async (req, res) => {
 app.get('/api/gyms', authenticateToken, async (req, res) => {
     try {
         const gyms = await prisma.gym.findMany({
-            where: { businessId: req.user.businessId }
+            where: req.user.role === 'SUPER_ADMIN' && !req.user.businessId ? {} : { businessId: req.user.businessId }
         });
         res.json(gyms);
     } catch (error) {
@@ -1132,7 +1132,7 @@ app.get('/api/classes', authenticateToken, async (req, res) => {
     try {
         const classes = await prisma.class.findMany({
             where: {
-                gym: { businessId: req.user.businessId },
+                ...(req.user.role === 'SUPER_ADMIN' && !req.user.businessId ? {} : { gym: { businessId: req.user.businessId } }),
                 ...(gymId ? { gymId } : {}),
                 ...(categoria ? { categoria } : {})
             },

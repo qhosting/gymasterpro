@@ -14,7 +14,9 @@ async function main() {
         id: true,
         nombre: true,
         email: true,
-        telefono: true
+        telefono: true,
+        role: true,
+        businessId: true
     }
   });
   console.log(JSON.stringify(users, null, 2));

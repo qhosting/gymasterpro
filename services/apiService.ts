@@ -5,7 +5,7 @@ const API_URL = typeof window !== 'undefined'
     ? (window.location.port === '3000' ? `${window.location.protocol}//${window.location.hostname}:3001/api` : '/api')
     : '/api';
 
-const getHeaders = () => {
+export const getHeaders = () => {
     const token = localStorage.getItem('gym-token');
     return {
         'Content-Type': 'application/json',
@@ -395,5 +395,50 @@ export const markNotificationAsRead = async (id: string, read: boolean = true) =
         body: JSON.stringify({ read })
     });
     if (!response.ok) throw new Error('Failed to update notification');
+    return await response.json();
+};
+export const fetchClasses = async () => {
+    const response = await fetch(`${API_URL}/classes`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch classes');
+    return await response.json();
+};
+
+export const fetchGyms = async () => {
+    const response = await fetch(`${API_URL}/gyms`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch gyms');
+    return await response.json();
+};
+
+export const fetchMyBookings = async () => {
+    const response = await fetch(`${API_URL}/classes/my-bookings`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch my bookings');
+    return await response.json();
+};
+
+export const bookClass = async (classId: string, fecha: string) => {
+    const response = await fetch(`${API_URL}/classes/book`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ classId, fecha })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to book class');
+    }
+    return await response.json();
+};
+
+export const cancelBooking = async (bookingId: string) => {
+    const response = await fetch(`${API_URL}/classes/bookings/${bookingId}/cancel`, {
+        method: 'PATCH',
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to cancel booking');
     return await response.json();
 };

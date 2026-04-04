@@ -16,6 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { User, GroupClass, ClassCategory, Gym, BookingStatus, ClassBooking, UserRole } from '../types';
+import { fetchClasses, fetchGyms, fetchMyBookings, bookClass, cancelBooking } from '../services/apiService';
 
 interface ClassesViewProps {
   currentUser: User;
@@ -25,6 +26,7 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
   const [classes, setClasses] = useState<GroupClass[]>([]);
   const [myBookings, setMyBookings] = useState<ClassBooking[]>([]);
   const [gyms, setGyms] = useState<Gym[]>([]);
+  const [instructors, setInstructors] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedGym, setSelectedGym] = useState<string>('ALL');
@@ -44,19 +46,24 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [classesRes, gymsRes, bookingsRes] = await Promise.all([
-        fetch('/api/classes'),
-        fetch('/api/gyms'),
-        isMember ? fetch('/api/classes/my-bookings') : Promise.resolve({ json: () => [] })
+      const [classesData, gymsData, bookingsData] = await Promise.all([
+        fetchClasses(),
+        fetchGyms(),
+        isMember ? fetchMyBookings() : Promise.resolve([])
       ]);
-
-      const classesData = await classesRes.json();
-      const gymsData = await gymsRes.json();
-      const bookingsData = await bookingsRes.json();
 
       setClasses(classesData);
       setGyms(gymsData);
       if (isMember) setMyBookings(bookingsData);
+      
+      // Load instructors for the add modal
+      if (isAdmin || isInstructor) {
+        const staffRes = await fetch('/api/staff', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
+        });
+        const staffData = await staffRes.json();
+        setInstructors(staffData.filter((u: any) => u.role === UserRole.INSTRUCTOR));
+      }
     } catch (error) {
       console.error('Error fetching classes data:', error);
     } finally {
@@ -65,25 +72,14 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
   };
 
   const handleBook = async (classId: string) => {
-    // For demo, we use today's date if it matches the diaSemana, or next available
     const today = new Date();
     setBookingLoading(classId);
     try {
-      const response = await fetch('/api/classes/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId, fecha: today.toISOString() })
-      });
-
-      if (response.ok) {
-        alert('¡Reserva exitosa!');
-        fetchData();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Error al reservar');
-      }
-    } catch (error) {
-      alert('Error en el servidor');
+      await bookClass(classId, today.toISOString());
+      alert('¡Reserva exitosa!');
+      fetchData();
+    } catch (error: any) {
+      alert(error.message || 'Error al reservar');
     } finally {
       setBookingLoading(null);
     }
@@ -92,19 +88,10 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm('¿Estás seguro de cancelar tu reserva?')) return;
     try {
-      const response = await fetch(`/api/classes/bookings/${bookingId}/cancel`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        fetchData();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Error al cancelar');
-      }
+      await cancelBooking(bookingId);
+      fetchData();
     } catch (error) {
-      alert('Error en el servidor');
+      alert('Error al cancelar la reserva');
     }
   };
 
@@ -323,6 +310,132 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
           </div>
         )}
       </section>
+
+      {showAddModal && (
+        <AddClassModal 
+          show={showAddModal} 
+          onClose={() => setShowAddModal(false)} 
+          instructors={instructors}
+          gyms={gyms}
+          onSave={async (data) => {
+            try {
+              const res = await fetch('/api/classes', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('gym-token')}`
+                },
+                body: JSON.stringify(data)
+              });
+              if (res.ok) {
+                setShowAddModal(false);
+                fetchData();
+              }
+            } catch (err) {
+              alert('Error al crear clase');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// --- MODAL DE AGREGAR CLASE ---
+const AddClassModal: React.FC<{ 
+  show: boolean, 
+  onClose: () => void, 
+  onSave: (data: any) => void,
+  gyms: Gym[],
+  instructors: User[]
+}> = ({ show, onClose, onSave, gyms, instructors }) => {
+  const [formData, setFormData] = useState({
+    nombre: '',
+    categoria: ClassCategory.FUNCIONAL,
+    diaSemana: 1,
+    horaInicio: '08:00',
+    horaFin: '09:00',
+    capacidad: 20,
+    instructorId: '',
+    gymId: ''
+  });
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="bg-gray-900 border border-gray-800 w-full max-w-lg rounded-[32px] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="p-8 space-y-6">
+          <h2 className="text-2xl font-bold text-white uppercase italic tracking-tighter">Nueva Clase Grupal</h2>
+          
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nombre de la Clase</label>
+              <input 
+                className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold focus:ring-2 focus:ring-orange-500"
+                placeholder="Ej: Yoga Flow Mañana"
+                value={formData.nombre}
+                onChange={e => setFormData({...formData, nombre: e.target.value})}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Categoría</label>
+                <select 
+                  className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold"
+                  value={formData.categoria}
+                  onChange={e => setFormData({...formData, categoria: e.target.value as ClassCategory})}
+                >
+                  {Object.values(ClassCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Día</label>
+                <select 
+                  className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold"
+                  value={formData.diaSemana}
+                  onChange={e => setFormData({...formData, diaSemana: parseInt(e.target.value)})}
+                >
+                  {['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'].map((d, i) => (
+                    <option key={i} value={i}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Inicio</label>
+                <input type="time" className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.horaInicio} onChange={e => setFormData({...formData, horaInicio: e.target.value})} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Capacidad</label>
+                <input type="number" className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.capacidad} onChange={e => setFormData({...formData, capacidad: parseInt(e.target.value)})} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Sucursal</label>
+              <select className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.gymId} onChange={e => setFormData({...formData, gymId: e.target.value})}>
+                <option value="">Selecciona Sucursal</option>
+                {gyms.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 flex gap-4">
+            <button onClick={onClose} className="flex-1 py-4 bg-gray-800 text-gray-400 rounded-2xl font-bold hover:bg-gray-700 transition-all">Cancelar</button>
+            <button 
+              onClick={() => onSave(formData)}
+              className="flex-2 py-4 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-900/40"
+            >
+              Crear Clase
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
