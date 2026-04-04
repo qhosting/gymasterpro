@@ -180,7 +180,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
                 {qrUrl && (
                   <a 
                     href={qrUrl} 
-                    download={`QR-GymMaster-${profile?.id || 'temp'}.png`}
+                    download={`QR-AurumFit-${profile?.id || 'temp'}.png`}
                     className="p-1 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
                     title="Descargar QR"
                   >
@@ -261,7 +261,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ currentUser }) => {
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                 <Award size={20} />
               </div>
-              <p className="text-xs font-black uppercase tracking-widest">Coach GymMaster</p>
+              <p className="text-xs font-black uppercase tracking-widest">Coach AurumFit</p>
             </div>
           </div>
         </div>

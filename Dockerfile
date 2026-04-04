@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for GymMaster PRO
+# Multi-stage Dockerfile for AurumFit
 FROM node:20-alpine AS builder
 
 WORKDIR /app

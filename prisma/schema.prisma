@@ -7,17 +7,17 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  nombre   String
-  email    String  @unique
-  role     Role    @default(MIEMBRO)
-  foto     String?
-  password String?
-  telefono String? @unique
+  id         String    @id @default(uuid())
+  nombre     String
+  email      String    @unique
+  role       Role      @default(MIEMBRO)
+  foto       String?
+  password   String?
+  telefono   String?   @unique
   businessId String?
+  classes    Class[]
+  member     Member?
   business   Business? @relation(fields: [businessId], references: [id])
-  member   Member?
-  classes  Class[] // As Instructor
 }
 
 model Member {
@@ -42,76 +42,76 @@ model Member {
   appointments       Appointment[]
   attendance         Attendance[]
   metrics            BodyMetrics[]
+  bookings           ClassBooking[]
   user               User             @relation(fields: [id], references: [id])
   plan               Plan             @relation(fields: [planId], references: [id])
   notifications      Notification[]
   routines           Routine[]
   transactions       Transaction[]
-  bookings           ClassBooking[]
 }
 
 model Gym {
-  id                String   @id @default(uuid())
-  nombre            String
-  direccion         String?
-  cancellationWindow Int     @default(2) // Horas por defecto
-  businessId        String?
-  business          Business? @relation(fields: [businessId], references: [id])
-  clases            Class[]
+  id                 String    @id @default(uuid())
+  nombre             String
+  direccion          String?
+  cancellationWindow Int       @default(2)
+  businessId         String?
+  clases             Class[]
+  business           Business? @relation(fields: [businessId], references: [id])
 }
 
 model Business {
-  id            String   @id @default(uuid())
+  id            String          @id @default(uuid())
   nombre        String
   logo          String?
-  status        String   @default("ACTIVO") // ACTIVO, SUSPENDIDO
-  createdAt     DateTime @default(now())
-  users         User[]
+  status        String          @default("ACTIVO")
+  createdAt     DateTime        @default(now())
   gyms          Gym[]
-  plans         Plan[]
   notifications Notification[]
-  settings      SystemSettings[]
+  plans         Plan[]
+  settings      SystemSettings?
+  users         User[]
 }
 
 model Class {
-  id                String           @id @default(uuid())
-  nombre            String
-  categoria         ClassCategory
-  instructorId      String
-  gymId             String
-  diaSemana         Int              // 0-6 (0=Dom, 1=Lun...)
-  horaInicio        String           // "HH:mm"
-  horaFin           String           // "HH:mm"
-  capacidad         Int              @default(20)
-  cancellationWindowOverride Int?    
-  instructor        User             @relation(fields: [instructorId], references: [id])
-  gym               Gym              @relation(fields: [gymId], references: [id])
-  bookings          ClassBooking[]
+  id                         String         @id @default(uuid())
+  nombre                     String
+  categoria                  ClassCategory
+  instructorId               String
+  gymId                      String
+  diaSemana                  Int
+  horaInicio                 String
+  horaFin                    String
+  capacidad                  Int            @default(20)
+  cancellationWindowOverride Int?
+  gym                        Gym            @relation(fields: [gymId], references: [id])
+  instructor                 User           @relation(fields: [instructorId], references: [id])
+  bookings                   ClassBooking[]
 }
 
 model ClassBooking {
-  id                String           @id @default(uuid())
-  classId           String
-  memberId          String
-  fecha           DateTime         // Fecha específica de la clase (para clases recurrentes)
-  status            BookingStatus    @default(RESERVED)
-  createdAt         DateTime         @default(now())
-  clase             Class            @relation(fields: [classId], references: [id])
-  miembro           Member           @relation(fields: [memberId], references: [id])
+  id        String        @id @default(uuid())
+  classId   String
+  memberId  String
+  fecha     DateTime
+  status    BookingStatus @default(RESERVED)
+  createdAt DateTime      @default(now())
+  clase     Class         @relation(fields: [classId], references: [id])
+  miembro   Member        @relation(fields: [memberId], references: [id])
 
   @@unique([classId, memberId, fecha])
 }
 
 model Plan {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   nombre        String
   costo         Float
   duracionMeses Int
   beneficios    String[]
   color         String?
   businessId    String?
-  business      Business? @relation(fields: [businessId], references: [id])
   members       Member[]
+  business      Business? @relation(fields: [businessId], references: [id])
 }
 
 model Attendance {
@@ -180,38 +180,38 @@ model Exercise {
 }
 
 model SystemSettings {
-  id                String  @id @default(uuid())
-  businessId        String? @unique
-  business          Business? @relation(fields: [businessId], references: [id])
-  gymName           String  @default("AurumFit")
-  aforoMaximo       Int     @default(50)
+  id                String    @id @default(uuid())
+  gymName           String    @default("AurumFit")
+  aforoMaximo       Int       @default(50)
   direccion         String?
   horario           String?
   wahaUrl           String?
   wahaKey           String?
   geminiKey         String?
-  ycloudKey         String? @map("ycloud_key")
-  pushEnabled       Boolean @default(true)
-  backupEnabled     Boolean @default(true)
+  ycloudKey         String?   @map("ycloud_key")
+  pushEnabled       Boolean   @default(true)
+  backupEnabled     Boolean   @default(true)
   openpayMerchantId String?
   openpayPrivateKey String?
   openpayPublicKey  String?
-  openpaySandbox    Boolean @default(true)
-  primaryColor      String  @default("#f97316")
-  darkMode          Boolean @default(false)
+  openpaySandbox    Boolean   @default(true)
+  darkMode          Boolean   @default(false)
+  primaryColor      String    @default("#f97316")
+  businessId        String?   @unique
+  business          Business? @relation(fields: [businessId], references: [id])
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  memberId  String?
+  id         String    @id @default(uuid())
+  memberId   String?
+  tipo       String
+  mensaje    String
+  timestamp  DateTime  @default(now())
+  status     String    @default("sent")
+  read       Boolean   @default(false)
   businessId String?
   business   Business? @relation(fields: [businessId], references: [id])
-  tipo      String
-  mensaje   String
-  timestamp DateTime @default(now())
-  status    String   @default("sent")
-  read      Boolean  @default(false)
-  member    Member?  @relation(fields: [memberId], references: [id])
+  member     Member?   @relation(fields: [memberId], references: [id])
 }
 
 enum Role {

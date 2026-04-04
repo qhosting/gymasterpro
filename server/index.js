@@ -968,6 +968,7 @@ app.patch('/api/member/settings/:id', authenticateToken, async (req, res) => {
 app.post('/api/ai/process', authenticateToken, async (req, res) => {
     const { prompt, type, base64Image } = req.body;
     try {
+        if (!req.user.businessId) return res.status(400).json({ error: 'Usuario sin negocio asignado' });
         const settings = await prisma.systemSettings.findUnique({ 
             where: { businessId: req.user.businessId } 
         });
@@ -996,6 +997,7 @@ app.post('/api/ai/process', authenticateToken, async (req, res) => {
 app.post('/api/whatsapp/send', authenticateToken, async (req, res) => {
     const { phone, text } = req.body;
     try {
+        if (!req.user.businessId) return res.status(400).json({ error: 'Usuario sin negocio asignado' });
         const settings = await prisma.systemSettings.findUnique({ 
             where: { businessId: req.user.businessId } 
         });

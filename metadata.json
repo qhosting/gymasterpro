@@ -1,5 +1,5 @@
 {
-  "name": "GymMaster Pro - Sistema de Gestión",
+  "name": "AurumFit - Sistema de Gestión",
   "description": "Sistema integral para la gestión de gimnasios: membresías, asistencia, pagos y roles (Admin, Instructor, Cliente).",
   "requestFramePermissions": [
     "camera"
