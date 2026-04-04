@@ -13,7 +13,9 @@ import {
   Settings,
   ChevronRight,
   Loader2,
-  WifiOff
+  WifiOff,
+  Building2,
+  MapPin
 } from 'lucide-react';
 import NotificationDropdown from './components/NotificationDropdown';
 import { Apple, User as UserIcon } from 'lucide-react';
@@ -30,6 +32,8 @@ import TrainingView from './components/TrainingView';
 import MemberProfile from './components/MemberProfile';
 import ClassesView from './components/ClassesView';
 import GymsView from './components/GymsView';
+import BusinessManagement from './components/BusinessManagement';
+import CoachDiscovery from './components/CoachDiscovery';
 import Login from './components/Login';
 import { fetchMembers, getMe, logout, fetchNotifications, fetchSystemSettings } from './services/apiService';
 import { SystemSettings as SystemSettingsType } from './types';
@@ -140,6 +144,8 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'businesses', label: 'Negocios', icon: Building2, roles: [UserRole.SUPER_ADMIN] },
+    { id: 'coaches', label: 'Encuentra tu Coach', icon: Users, roles: [UserRole.MIEMBRO] },
     { id: 'classes', label: 'Clases', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
     { id: 'gyms', label: 'Sucursales', icon: MapPin, roles: [UserRole.SUPER_ADMIN] },
     { id: 'training', label: 'Entrenamiento', icon: Dumbbell, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.MIEMBRO] },
@@ -160,6 +166,8 @@ const App: React.FC = () => {
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
       case 'classes': return <ClassesView currentUser={currentUser} />;
       case 'gyms': return <GymsView currentUser={currentUser} />;
+      case 'businesses': return <BusinessManagement />;
+      case 'coaches': return <CoachDiscovery currentUser={currentUser} />;
       case 'profile': return <MemberProfile currentUser={currentUser} members={members} />;
       case 'finance': return <FinanceView members={members} setMembers={setMembers} />;
       case 'notifications': return <NotificationsView members={members} notifications={notifications} setNotifications={setNotifications} currentUser={currentUser} />;

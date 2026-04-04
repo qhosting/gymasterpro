@@ -97,6 +97,18 @@ export interface NutritionAppointment {
   notas?: string;
 }
 
+export interface Business {
+  id: string;
+  nombre: string;
+  logo?: string;
+  status: 'ACTIVO' | 'SUSPENDIDO';
+  createdAt: string;
+  _count?: {
+      gyms: number;
+      users: number;
+  }
+}
+
 export interface Exercise {
   id?: string;
   nombre: string;

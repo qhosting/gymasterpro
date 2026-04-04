@@ -100,6 +100,42 @@ app.post('/api/upload', authenticateToken, upload.single('foto'), (req, res) => 
     res.json({ url });
 });
 
+// --- ENDPOINTS DE NEGOCIOS (SOLO SUPERADMIN) ---
+app.get('/api/admin/businesses', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Solo SuperAdmin' });
+    try {
+        const businesses = await prisma.business.findMany({
+            include: { _count: { select: { gyms: true, users: true } } }
+        });
+        res.json(businesses);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener negocios' });
+    }
+});
+
+app.post('/api/admin/businesses', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Solo SuperAdmin' });
+    try {
+        const business = await prisma.business.create({ data: req.body });
+        res.status(201).json(business);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear negocio' });
+    }
+});
+
+app.patch('/api/admin/businesses/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Solo SuperAdmin' });
+    try {
+        const business = await prisma.business.update({
+            where: { id: req.params.id },
+            data: req.body
+        });
+        res.json(business);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar negocio' });
+    }
+});
+
 app.post('/api/login', async (req, res) => {
     const { email, identifier, password } = req.body;
     const loginValue = identifier || email; // Soporta ambos nombres de campo
@@ -121,7 +157,7 @@ app.post('/api/login', async (req, res) => {
         if (!validPassword) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
+            { id: user.id, email: user.email, role: user.role, businessId: user.businessId },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -134,6 +170,7 @@ app.post('/api/login', async (req, res) => {
                 email: user.email,
                 role: user.role,
                 foto: user.foto,
+                businessId: user.businessId,
                 memberId: user.member?.id
             }
         });
@@ -397,13 +434,14 @@ app.delete('/api/members/:id', authenticateToken, async (req, res) => {
 // --- OTROS ENDPOINTS ---
 
 // Listar planes
-app.get('/api/plans', async (req, res) => {
+app.get('/api/plans', authenticateToken, async (req, res) => {
     try {
-        const plans = await prisma.plan.findMany();
+        const plans = await prisma.plan.findMany({
+            where: { businessId: req.user.businessId }
+        });
         res.json(plans);
     } catch (error) {
-        console.error('Error fetching plans:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Error al obtener planes' });
     }
 });
 
@@ -411,7 +449,9 @@ app.get('/api/plans', async (req, res) => {
 app.post('/api/plans', authenticateToken, async (req, res) => {
     const data = req.body;
     try {
-        const plan = await prisma.plan.create({ data });
+        const plan = await prisma.plan.create({ 
+            data: { ...data, businessId: req.user.businessId } 
+        });
         res.status(201).json(plan);
     } catch (error) {
         res.status(500).json({ error: 'Error al crear plan' });
@@ -789,6 +829,16 @@ app.get('/api/training/routines/:memberId', authenticateToken, async (req, res) 
 app.post('/api/training/routines', authenticateToken, async (req, res) => {
     const { memberId, nombre, descripcion, instructor, objetivo, exercises } = req.body;
     try {
+        const user = await prisma.user.create({
+            data: {
+                nombre,
+                email,
+                telefono,
+                password: hashedPassword,
+                role: role || 'MIEMBRO',
+                businessId: req.user.businessId
+            }
+        });
         const routine = await prisma.routine.create({
             data: {
                 memberId,
@@ -918,8 +968,10 @@ app.patch('/api/member/settings/:id', authenticateToken, async (req, res) => {
 app.post('/api/ai/process', authenticateToken, async (req, res) => {
     const { prompt, type, base64Image } = req.body;
     try {
-        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
-        if (!settings?.geminiKey) return res.status(400).json({ error: 'API Key de Gemini no configurada' });
+        const settings = await prisma.systemSettings.findUnique({ 
+            where: { businessId: req.user.businessId } 
+        });
+        if (!settings?.geminiKey) return res.status(400).json({ error: 'IA no configurada para este negocio' });
 
         const genAI = new GoogleGenAI(settings.geminiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -944,8 +996,10 @@ app.post('/api/ai/process', authenticateToken, async (req, res) => {
 app.post('/api/whatsapp/send', authenticateToken, async (req, res) => {
     const { phone, text } = req.body;
     try {
-        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
-        if (!settings?.wahaUrl) return res.status(400).json({ error: 'WAHA no configurado' });
+        const settings = await prisma.systemSettings.findUnique({ 
+            where: { businessId: req.user.businessId } 
+        });
+        if (!settings?.wahaUrl) return res.status(400).json({ error: 'WAHA no configurado para este negocio' });
 
         const chatId = phone.includes('@') ? phone : `${phone.replace('+', '')}@c.us`;
         
@@ -974,7 +1028,9 @@ app.post('/api/whatsapp/send', authenticateToken, async (req, res) => {
 // Checar estado de WAHA
 app.get('/api/whatsapp/status', authenticateToken, async (req, res) => {
     try {
-        const settings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+        const settings = await prisma.systemSettings.findUnique({ 
+            where: { businessId: req.user.businessId } 
+        });
         if (!settings?.wahaUrl) return res.json({ online: false });
 
         const response = await fetch(`${settings.wahaUrl}/api/sessions/default`, {
@@ -986,10 +1042,27 @@ app.get('/api/whatsapp/status', authenticateToken, async (req, res) => {
     }
 });
 
-// --- ENDPOINTS DE SUCURSALES (GYMS) ---
-app.get('/api/gyms', async (req, res) => {
+// --- ENDPOINTS DE USUARIOS (STAFF) ---
+app.get('/api/staff', authenticateToken, async (req, res) => {
     try {
-        const gyms = await prisma.gym.findMany();
+        const staff = await prisma.user.findMany({
+            where: { 
+                businessId: req.user.businessId,
+                role: { in: ['ADMIN', 'INSTRUCTOR', 'NUTRIOLOGO'] }
+            }
+        });
+        res.json(staff);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener personal' });
+    }
+});
+
+// --- ENDPOINTS DE SUCURSALES (GYMS) ---
+app.get('/api/gyms', authenticateToken, async (req, res) => {
+    try {
+        const gyms = await prisma.gym.findMany({
+            where: { businessId: req.user.businessId }
+        });
         res.json(gyms);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener sucursales' });
@@ -1001,7 +1074,12 @@ app.post('/api/gyms', authenticateToken, async (req, res) => {
         return res.status(403).json({ error: 'No autorizado' });
     }
     try {
-        const gym = await prisma.gym.create({ data: req.body });
+        const gym = await prisma.gym.create({ 
+            data: { 
+                ...req.body, 
+                businessId: req.user.businessId 
+            } 
+        });
         res.status(201).json(gym);
     } catch (error) {
         res.status(500).json({ error: 'Error al crear sucursal' });
@@ -1046,6 +1124,7 @@ app.get('/api/classes', authenticateToken, async (req, res) => {
     try {
         const classes = await prisma.class.findMany({
             where: {
+                gym: { businessId: req.user.businessId },
                 ...(gymId ? { gymId } : {}),
                 ...(categoria ? { categoria } : {})
             },
@@ -1212,10 +1291,43 @@ app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// SPA Catch-all: Send all other requests to index.html
-app.use(express.static(path.join(__dirname, '../dist')));
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+// --- CONFIGURACIÓN DEL SISTEMA (POR NEGOCIO) ---
+app.get('/api/settings', authenticateToken, async (req, res) => {
+    try {
+        let settings = await prisma.systemSettings.findUnique({
+            where: { businessId: req.user.businessId }
+        });
+
+        // Si no existen settings para este negocio, crearlos con valores por defecto
+        if (!settings && req.user.businessId) {
+            settings = await prisma.systemSettings.create({
+                data: {
+                    businessId: req.user.businessId,
+                    gymName: 'Mi Gimnasio AurumFit',
+                    primaryColor: '#00695c'
+                }
+            });
+        }
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener configuración' });
+    }
+});
+
+app.post('/api/settings', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    try {
+        const settings = await prisma.systemSettings.upsert({
+            where: { businessId: req.user.businessId },
+            update: req.body,
+            create: { ...req.body, businessId: req.user.businessId }
+        });
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al guardar configuración' });
+    }
 });
 
 app.listen(PORT, () => {

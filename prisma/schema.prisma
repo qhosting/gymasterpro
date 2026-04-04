@@ -14,6 +14,8 @@ model User {
   foto     String?
   password String?
   telefono String? @unique
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
   member   Member?
   classes  Class[] // As Instructor
 }
@@ -53,7 +55,22 @@ model Gym {
   nombre            String
   direccion         String?
   cancellationWindow Int     @default(2) // Horas por defecto
+  businessId        String?
+  business          Business? @relation(fields: [businessId], references: [id])
   clases            Class[]
+}
+
+model Business {
+  id            String   @id @default(uuid())
+  nombre        String
+  logo          String?
+  status        String   @default("ACTIVO") // ACTIVO, SUSPENDIDO
+  createdAt     DateTime @default(now())
+  users         User[]
+  gyms          Gym[]
+  plans         Plan[]
+  notifications Notification[]
+  settings      SystemSettings[]
 }
 
 model Class {
@@ -92,6 +109,8 @@ model Plan {
   duracionMeses Int
   beneficios    String[]
   color         String?
+  businessId    String?
+  business      Business? @relation(fields: [businessId], references: [id])
   members       Member[]
 }
 
@@ -161,7 +180,9 @@ model Exercise {
 }
 
 model SystemSettings {
-  id                String  @id @default("default")
+  id                String  @id @default(uuid())
+  businessId        String? @unique
+  business          Business? @relation(fields: [businessId], references: [id])
   gymName           String  @default("AurumFit")
   aforoMaximo       Int     @default(50)
   direccion         String?
@@ -183,6 +204,8 @@ model SystemSettings {
 model Notification {
   id        String   @id @default(uuid())
   memberId  String?
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
   tipo      String
   mensaje   String
   timestamp DateTime @default(now())

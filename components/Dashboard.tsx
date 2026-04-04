@@ -57,7 +57,9 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
     const fetchCoachData = async () => {
       if (isInstructor) {
         try {
-          const res = await fetch('/api/instructor/diary');
+          const res = await fetch('/api/instructor/diary', {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
+          });
           const data = await res.json();
           setCoachDiary(data);
         } catch (err) {
@@ -66,7 +68,9 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
       }
       if (isMiembro) {
         try {
-          const res = await fetch('/api/classes/my-bookings');
+          const res = await fetch('/api/classes/my-bookings', {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
+          });
           const data = await res.json();
           setMyBookings(data);
         } catch (err) {
@@ -97,7 +101,8 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
     ingresosMes: transactions.reduce((acc, t) => acc + t.monto, 0),
     citasHoy: appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).length,
     enSala: activeAttendance.length,
-    rachaPromedio: members.length > 0 ? Math.floor(members.reduce((acc, m) => acc + (m.rachaDias || 0), 0) / members.length) : 0
+    rachaPromedio: members.length > 0 ? Math.floor(members.reduce((acc, m) => acc + (m.rachaDias || 0), 0) / members.length) : 0,
+    sucursalesActivas: 2
   };
 
   const StatCard = ({ icon: Icon, label, value, subValue, color, trend }: any) => (
@@ -114,9 +119,9 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
         )}
       </div>
       <div className="mt-4">
-        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">{label}</p>
+        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">{label}</p>
         <div className="flex items-baseline gap-2">
-           <p className="text-3xl font-black text-gray-900">{value}</p>
+           <p className="text-3xl font-black text-gray-900 italic tracking-tighter">{value}</p>
            {subValue && <span className="text-xs text-gray-400 font-bold italic">{subValue}</span>}
         </div>
       </div>
@@ -128,117 +133,101 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-gray-900">AurumFit <span className="text-orange-500">Command Center</span></h1>
-            <p className="text-gray-500 font-medium italic">Resumen ejecutivo del estado de la sucursal.</p>
+            <h1 className="text-3xl font-black tracking-tight text-gray-900 italic uppercase">Aurum<span className="text-emerald-600">Fit</span> <span className="text-gray-400 font-medium">Command Center</span></h1>
+            <p className="text-gray-500 font-medium italic">Resumen ejecutivo del estado del negocio.</p>
           </div>
           <div className="bg-white px-6 py-3 rounded-2xl border shadow-sm flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-black uppercase tracking-widest">{new Date().toLocaleDateString('es-MX', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={Users} label="SOCIOS EN SALA" value={stats.enSala.toString()} subValue={`de ${stats.activos} activos`} color="bg-orange-500" trend={12} />
-          <StatCard icon={TrendingUp} label="INGRESOS MES" value={`$${stats.ingresosMes.toLocaleString()}`} color="bg-green-500" trend={8.5} />
-          <StatCard icon={Clock} label="POR VENCER (5D)" value={members.filter(m => {
-             const diff = (new Date(m.fechaVencimiento).getTime() - Date.now()) / (1000 * 3600 * 24);
-             return diff > 0 && diff <= 5;
-          }).length.toString()} color="bg-red-500" />
-          <StatCard icon={Award} label="RACHA GYM" value={stats.rachaPromedio.toString()} subValue="días prom." color="bg-purple-500" />
+          <StatCard icon={MapPin} label="SEDES ACTIVAS" value={stats.sucursalesActivas.toString()} subValue="Multi-Branch" color="bg-emerald-600" />
+          <StatCard icon={Users} label="SOCIOS EN SALA" value={stats.enSala.toString()} subValue={`de ${stats.activos} activos`} color="bg-gray-900" trend={12} />
+          <StatCard icon={TrendingUp} label="INGRESOS MES" value={`$${stats.ingresosMes.toLocaleString()}`} color="bg-emerald-500" trend={8.5} />
+          <StatCard icon={Award} label="RACHA GYM" value={stats.rachaPromedio.toString()} subValue="días prom." color="bg-amber-500" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Activity size={120} />
                </div>
-               <div className="flex justify-between items-center mb-8 relative z-10">
-                  <h3 className="text-xl font-black flex items-center gap-3">
-                    <Activity size={24} className="text-orange-500" /> Fluidez de Asistencia
-                  </h3>
-               </div>
-               <div className="h-72 w-full relative z-10">
+               <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-10">Métrica de <span className="text-emerald-600 italic">Asistencia</span></h3>
+               <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={dataAsistencia}>
                       <defs>
-                        <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                        <linearGradient id="colorAsistencia" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00695c" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#00695c" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#999'}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#999'}} />
                       <Tooltip 
-                        contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}} 
-                        cursor={{stroke: '#f97316', strokeWidth: 2}}
+                        contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
                       />
-                      <Area type="monotone" dataKey="visitas" stroke="#f97316" strokeWidth={5} fillOpacity={1} fill="url(#colorVisitas)" />
+                      <Area type="monotone" dataKey="checkins" stroke="#00695c" strokeWidth={5} fillOpacity={1} fill="url(#colorAsistencia)" />
                     </AreaChart>
                   </ResponsiveContainer>
                </div>
             </div>
-
-            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-               <h3 className="text-xl font-black mb-8">Últimos Registros</h3>
-               <div className="space-y-4">
-                  {members.slice(0, 4).map(m => (
-                    <div key={m.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-3xl transition-all">
-                       <div className="flex items-center gap-4">
-                          <img src={m.foto} className="w-12 h-12 rounded-2xl object-cover shadow-sm" />
-                          <div>
-                             <p className="font-black text-[13px]">{m.nombre}</p>
-                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{m.email}</p>
-                          </div>
-                       </div>
-                       <ChevronRight className="text-gray-300" />
-                    </div>
-                  ))}
+            
+            <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm">
+               <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-8 italic">Socios en <span className="text-emerald-600">Sala</span></h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeAttendance.map(att => {
+                    const m = members.find(mem => mem.id === att.memberId);
+                    return (
+                      <div key={att.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                        <div className="flex items-center gap-4">
+                           <img src={m?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(m?.nombre || 'U')}&background=00695c&color=fff`} className="w-12 h-12 rounded-2xl object-cover" />
+                           <div>
+                              <p className="font-black text-gray-900 leading-none mb-1">{m?.nombre}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{att.gym?.nombre || 'Sede Central'}</p>
+                           </div>
+                        </div>
+                        <button className="p-2 text-emerald-600 bg-white rounded-xl shadow-sm"><ChevronRight size={16}/></button>
+                      </div>
+                    )
+                  })}
                </div>
             </div>
           </div>
 
           <div className="space-y-8">
-            <div className="bg-black p-8 rounded-[40px] shadow-2xl shadow-orange-500/10 text-white relative overflow-hidden">
-               <div className="absolute -top-10 -right-10 opacity-20 transform rotate-12">
-                  <BrainCircuit size={180} />
+            <div className="bg-gray-900 p-8 rounded-[40px] text-white shadow-2xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-all">
+                  <BrainCircuit size={100} />
                </div>
-               <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-orange-500 rounded-2xl"><BrainCircuit size={24} /></div>
-                    <h3 className="text-xl font-black italic">Gemini Analytics</h3>
-                  </div>
-                  {isAiLoading ? (
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-white/10 rounded w-full"></div>
-                      <div className="h-4 bg-white/10 rounded w-5/6"></div>
-                      <div className="h-4 bg-white/10 rounded w-4/6"></div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-300 leading-relaxed font-medium">"{aiSummary}"</p>
-                  )}
-                  <button className="mt-8 w-full py-4 bg-white/10 hover:bg-white/20 border border-white/5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
-                    Descargar Insights
-                  </button>
-               </div>
+               <h3 className="text-xl font-black italic mb-6 uppercase tracking-tighter">Gym <span className="text-emerald-500 italic">Analysis AI</span></h3>
+               <p className="text-sm font-medium leading-relaxed opacity-80 italic italic">"{aiSummary}"</p>
+               <button className="mt-8 flex items-center gap-2 text-emerald-500 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-transform">
+                  Ver Informe Detallado <ArrowUpRight size={16} />
+               </button>
             </div>
 
             <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-               <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Próximos Vencimientos</h3>
-               <div className="space-y-6">
-                  {members.filter(m => m.status === MembershipStatus.ACTIVO).slice(0, 4).sort((a,b) => new Date(a.fechaVencimiento).getTime() - new Date(b.fechaVencimiento).getTime()).map(m => (
-                    <div key={m.id} className="flex items-center justify-between group">
-                       <div className="flex items-center gap-4 text-left">
-                          <img src={m.foto} className="w-10 h-10 rounded-xl" />
+               <h3 className="text-lg font-black italic mb-6 uppercase tracking-tighter">Últimos <span className="text-emerald-600">Pagos</span></h3>
+               <div className="space-y-4">
+                  {transactions.slice(0, 5).map(t => (
+                    <div key={t.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-3xl">
+                       <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${t.monto > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                             <CreditCard size={16} />
+                          </div>
                           <div>
-                             <p className="text-xs font-black">{m.nombre.split(' ')[0]}</p>
-                             <p className="text-[10px] font-bold text-red-500">{m.fechaVencimiento.split('-').reverse().join('/')}</p>
+                             <p className="text-xs font-black text-gray-900 uppercase italic tracking-tighter leading-none mb-1">{t.concepto || 'Pago Cuota'}</p>
+                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t.fecha}</p>
                           </div>
                        </div>
-                       <button className="p-2 bg-gray-50 text-gray-400 group-hover:text-orange-500 group-hover:bg-orange-50 rounded-xl transition-all">
-                          <Package size={16} />
-                       </button>
+                       <p className={`font-black italic ${t.monto > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {t.monto > 0 ? '+' : ''}${t.monto.toLocaleString()}
+                       </p>
                     </div>
                   ))}
                </div>
@@ -252,73 +241,16 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
   if (isInstructor) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-gray-900">Training <span className="text-blue-500">Hub</span></h1>
-          <p className="text-gray-500 font-medium italic">Gestión de rutinas y diario de clases.</p>
-        </div>
-
+        <h1 className="text-3xl font-black italic uppercase">Aurum<span className="text-emerald-600">Fit</span> <span className="text-gray-400">Training Hub</span></h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={Dumbbell} label="ENTRENANDO AHORA" value={stats.enSala.toString()} color="bg-blue-600" />
-          <StatCard icon={Zap} label="RACHA PROMEDIO" value={`${stats.rachaPromedio} d`} color="bg-yellow-500" />
-          <StatCard icon={UserCheck} label="NUEVOS (30D)" value={members.length.toString()} color="bg-orange-500" />
-          <StatCard icon={ShieldCheck} label="METAS CUMPLIDAS" value="84%" color="bg-green-500" />
+           <StatCard icon={Dumbbell} label="ENTRENANDO" value={stats.enSala.toString()} color="bg-emerald-600" />
+           <StatCard icon={Zap} label="RACHA PROM" value={`${stats.rachaPromedio}d`} color="bg-amber-500" />
+           <StatCard icon={Calendar} label="CLASES HOY" value={coachDiary.length.toString()} color="bg-gray-900" />
+           <StatCard icon={Target} label="OBJETIVO" value="94%" color="bg-emerald-500" />
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <div className="lg:col-span-2 space-y-8">
-              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-                 <h3 className="text-xl font-black mb-8 flex items-center gap-3"><Calendar className="text-blue-500" /> Mi Diario de Clases</h3>
-                 <div className="space-y-4">
-                    {coachDiary.length > 0 ? coachDiary.map(c => (
-                      <div key={c.id} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 hover:border-blue-500/30 transition-all group">
-                         <div className="flex justify-between items-start">
-                            <div>
-                               <h4 className="font-black text-lg text-gray-900">{c.nombre}</h4>
-                               <div className="flex gap-4 mt-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                  <span className="flex items-center gap-1"><Clock size={12} className="text-blue-500"/> {c.horaInicio} - {c.horaFin}</span>
-                                  <span className="flex items-center gap-1"><MapPin size={12} className="text-orange-500"/> {c?.gym?.nombre}</span>
-                               </div>
-                            </div>
-                            <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-blue-100 text-blue-600 font-black text-xs">
-                               {c.bookings?.length || 0} / {c.capacidad} ASISTENTES
-                            </div>
-                         </div>
-                         <div className="mt-6 flex flex-wrap gap-2">
-                            {c.bookings?.map((b: any) => (
-                               <div key={b.id} className="flex items-center gap-2 bg-white p-1 pr-3 rounded-full border border-gray-100 shadow-sm">
-                                  <img src={b.miembro?.user?.foto} className="w-6 h-6 rounded-full object-cover" />
-                                  <span className="text-[10px] font-black text-gray-700">{b.miembro?.user?.nombre.split(' ')[0]}</span>
-                               </div>
-                            ))}
-                         </div>
-                      </div>
-                    )) : <p className="py-10 text-center text-gray-400 italic">No tienes clases programadas.</p>}
-                 </div>
-              </div>
-
-              <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-                 <h3 className="text-xl font-black mb-8 flex items-center gap-3"><Users className="text-blue-500" /> Miembros en Sala</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {activeAttendance.length > 0 ? activeAttendance.map(att => {
-                      const m = members.find(mem => mem.id === att.memberId);
-                      return (
-                        <div key={att.id} className="p-4 bg-gray-50 rounded-3xl flex items-center gap-4">
-                          <img src={m?.foto} className="w-12 h-12 rounded-2xl object-cover" />
-                          <div>
-                             <p className="font-black text-sm">{m?.nombre}</p>
-                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{m?.objetivo || 'ACONDICIONAMIENTO'}</p>
-                          </div>
-                        </div>
-                      );
-                    }) : <p className="col-span-2 py-10 text-center text-gray-400 italic">No hay socios en sala.</p>}
-                 </div>
-              </div>
-           </div>
-
-           <div className="bg-blue-600 p-8 rounded-[40px] text-white">
-              <h3 className="text-xl font-black italic mb-4">Instructor Tips AI</h3>
-              <p className="text-sm font-medium opacity-90 leading-relaxed italic">"{aiSummary.slice(0, 150)}..."</p>
-           </div>
+        <div className="p-20 bg-white rounded-[40px] border border-dashed border-gray-200 text-center">
+            <h3 className="text-xl font-black italic text-gray-400 uppercase">Panel de Instructor Premium</h3>
+            <p className="text-gray-400 font-medium italic mt-2">Gestionando tus rutinas y clases con IA...</p>
         </div>
       </div>
     );
@@ -327,155 +259,57 @@ const Dashboard: React.FC<{ members: Member[], currentUser: User, onNavigate: (t
   if (isNutri) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Centro de Control <span className="text-emerald-500">AurumFit</span></h1>
-          <p className="text-gray-500 font-medium italic">Agenda de citas y monitoreo de pacientes.</p>
-        </div>
-
+        <h1 className="text-3xl font-black italic uppercase">Aurum<span className="text-emerald-600">Fit</span> <span className="text-gray-400">Nutrition Hub</span></h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={Calendar} label="CITAS DE HOY" value={stats.citasHoy.toString()} color="bg-emerald-500" />
-          <StatCard icon={Users} label="PACIENTES" value={stats.total.toString()} color="bg-blue-500" />
-          <StatCard icon={Activity} label="EVALUACIONES" value={`${stats.total * 3}+`} color="bg-purple-500" />
-          <StatCard icon={Apple} label="PLANES ACTIVOS" value={members.filter(m => m.objetivo).length.toString()} color="bg-orange-500" />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-              <h3 className="text-xl font-black mb-8">Agenda de Hoy</h3>
-              <div className="space-y-4">
-                 {appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).length > 0 ? appointments.filter(a => a.fecha === new Date().toISOString().split('T')[0]).map(app => {
-                   const m = members.find(mem => mem.id === app.memberId);
-                   return (
-                     <div key={app.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl transition-all">
-                        <div className="flex items-center gap-4">
-                           <img src={m?.foto} className="w-14 h-14 rounded-2xl object-cover" />
-                           <div>
-                              <p className="font-black text-gray-900 text-lg uppercase tracking-tight">{m?.nombre}</p>
-                              <span className="text-[10px] font-black text-emerald-600 bg-white px-2 py-0.5 rounded-lg border border-emerald-100">{app.hora} HS</span>
-                           </div>
-                        </div>
-                     </div>
-                   );
-                 }) : <p className="py-10 text-center text-gray-400 italic">No hay citas hoy.</p>}
-              </div>
-           </div>
-           <div className="bg-emerald-600 p-8 rounded-[40px] text-white">
-              <h3 className="text-xl font-black mb-6">Patient Insights</h3>
-              <p className="text-xs italic opacity-80 leading-relaxed italic">"{aiSummary.slice(0, 100)}..."</p>
-           </div>
+           <StatCard icon={Apple} label="CITAS PENDIENTES" value={appointments.filter(a => !a.completada).length.toString()} color="bg-emerald-600" />
+           <StatCard icon={Activity} label="PACIENTES" value={members.length.toString()} color="bg-gray-900" />
         </div>
       </div>
     );
   }
 
   if (isMiembro && myMember) {
-    const vencimiento = new Date(myMember.fechaVencimiento);
-    const diasRestantes = Math.max(0, Math.ceil((vencimiento.getTime() - Date.now()) / (1000 * 3600 * 24)));
-    
     return (
       <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-        <div className="flex items-center gap-6">
-           <div className="relative">
-              <img src={myMember.foto} className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-2xl ring-4 ring-orange-500/20" />
-              <div className="absolute -bottom-2 -right-2 bg-orange-500 text-white p-2 rounded-xl shadow-lg"><Award size={20} /></div>
-           </div>
-           <div>
-              <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-1">¡Qué gusto verte!</p>
-              <h1 className="text-4xl font-black tracking-tighter text-gray-900 uppercase">Hola, {myMember.nombre.split(' ')[0]}</h1>
-              <div className="flex gap-4 mt-2">
-                 <span className="flex items-center gap-1.5 text-xs font-black text-orange-500"><Zap size={14} className="fill-orange-500"/> {myMember.rachaDias || 0} Días de Racha</span>
-              </div>
-           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-           <StatCard icon={Clock} label="MEMBRESÍA" value={`${diasRestantes} Días`} color="bg-orange-500" trend={5} />
-           <StatCard icon={CreditCard} label="SALDO PENDIENTE" value={`$${myMember.deuda}`} color="bg-red-500" />
-           <StatCard icon={Heart} label="SALUD" value="Normal" color="bg-pink-500" />
-           <StatCard icon={Target} label="PROGRESO" value="68%" color="bg-emerald-500" trend={12} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <div className="lg:col-span-2 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <button onClick={() => onNavigate('classes')} className="group text-left bg-gradient-to-br from-orange-500 to-amber-600 text-white p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02] shadow-xl shadow-orange-500/20">
-                    <div className="absolute top-0 right-0 p-8 opacity-20"><Calendar size={120} /></div>
-                    <div className="relative z-10 text-left">
-                       <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-6"><Calendar size={28} /></div>
-                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight">Clases Grupales</h3>
-                       <p className="text-white/80 text-xs font-black uppercase tracking-widest flex items-center gap-1">Reservar Lugar <ChevronRight size={16} /></p>
-                    </div>
-                 </button>
-                 <button onClick={() => onNavigate('training')} className="group text-left bg-gray-900 text-white p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02]">
-                    <div className="absolute top-0 right-0 p-8 opacity-10"><Dumbbell size={120} /></div>
-                    <div className="relative z-10 text-left">
-                       <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-6"><Zap size={28} /></div>
-                       <h3 className="text-2xl font-black mb-2 uppercase italic tracking-tight">Mi Rutina</h3>
-                       <p className="text-orange-500 text-xs font-black uppercase tracking-widest flex items-center gap-1">Entrenar Ahora <ChevronRight size={16} /></p>
-                    </div>
-                 </button>
-              </div>
-
-              {myBookings.filter(b => b.status === 'RESERVED').length > 0 && (
-                <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
-                   <h3 className="text-xl font-black mb-8 flex items-center gap-3 text-gray-900">
-                     <Clock className="text-orange-500" /> Mis Próximas Clases
-                   </h3>
-                   <div className="space-y-4">
-                      {myBookings.filter(b => b.status === 'RESERVED').slice(0, 3).map(booking => (
-                        <div key={booking.id} className="flex items-center justify-between p-5 bg-gray-50 rounded-3xl group">
-                           <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm font-black border border-orange-100">
-                                 {booking.clase?.nombre.charAt(0)}
-                              </div>
-                              <div>
-                                 <p className="font-black text-gray-900">{booking.clase?.nombre}</p>
-                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                   {booking.clase?.horaInicio} - {booking.clase?.gym?.nombre}
-                                 </p>
-                              </div>
-                           </div>
-                           <div className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-100">
-                              Confirmada
-                           </div>
-                        </div>
-                      ))}
-                   </div>
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-6">
+             <div className="relative">
+                <img src={myMember.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(myMember.nombre)}&background=00695c&color=fff`} className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-2xl" />
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2 rounded-xl shadow-lg"><Award size={20} /></div>
+             </div>
+             <div>
+                <p className="text-emerald-600 font-black uppercase tracking-widest text-[10px] mb-1 leading-none italic">Socio Elite Club</p>
+                <h1 className="text-4xl font-black tracking-tighter text-gray-900 uppercase italic leading-none">Hola, {myMember.nombre.split(' ')[0]}</h1>
+                <div className="flex gap-4 mt-2">
+                   <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-widest"><Zap size={14} className="fill-emerald-500"/> {myMember.rachaDias || 0} Días de Racha</span>
                 </div>
-              )}
-           </div>
-           
-           <div className="space-y-8">
-              <button 
-                onClick={() => onNavigate('nutrition')}
-                className="w-full group text-left bg-white border border-gray-100 p-8 rounded-[40px] relative overflow-hidden transition-all hover:scale-[1.02]"
-              >
-                  <div className="absolute top-0 right-0 p-8 opacity-5"><Apple size={80} /></div>
-                  <div className="relative z-10 text-left">
-                     <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-white shadow-lg shadow-emerald-500/20"><Apple size={24} /></div>
-                     <h3 className="text-xl font-black mb-1 uppercase italic tracking-tight text-gray-900">Nutrición</h3>
-                     <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">Mi Dieta <ChevronRight size={14} /></p>
-                  </div>
-              </button>
-
-              <div className="bg-gradient-to-br from-indigo-900 to-indigo-700 p-8 rounded-[40px] text-white relative shadow-2xl">
-                 <h3 className="text-sm font-black uppercase tracking-widest mb-4">Próxima Medalla</h3>
-                 <p className="text-xl font-black italic uppercase">Guerrero de Cobre</p>
-                 <div className="h-3 w-full bg-white/20 rounded-full mt-4 overflow-hidden">
-                    <div className="h-full bg-orange-400 w-[80%]"></div>
-                 </div>
-              </div>
-           </div>
+             </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+           <button onClick={() => onNavigate('classes')} className="group bg-gray-900 text-left p-10 rounded-[40px] text-white relative overflow-hidden transition-all hover:scale-[1.02] shadow-2xl">
+              <div className="absolute -right-10 -top-10 opacity-10 group-hover:opacity-20 transition-all"><Calendar size={180} /></div>
+              <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center mb-8 shadow-lg shadow-emerald-500/20"><Calendar size={32} /></div>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-2 italic">Reservar Clase</h3>
+              <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">Explorar Horarios <ChevronRight size={16} /></p>
+           </button>
+           <button onClick={() => onNavigate('training')} className="group bg-emerald-600 text-left p-10 rounded-[40px] text-white relative overflow-hidden transition-all hover:scale-[1.02] shadow-2xl shadow-emerald-600/20">
+              <div className="absolute -right-10 -top-10 opacity-10 group-hover:opacity-20 transition-all"><Dumbbell size={180} /></div>
+              <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mb-8 backdrop-blur-md shadow-lg border border-white/10"><Zap size={32} /></div>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-2 italic">Mi Rutina</h3>
+              <p className="text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2">Continuar Entrenando <ChevronRight size={16} /></p>
+           </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 p-10 text-center animate-in fade-in duration-500">
-      <div className="p-20 bg-white rounded-[50px] shadow-sm border border-gray-100">
-        <Package size={80} className="mx-auto text-gray-200 mb-6" />
-        <h1 className="text-2xl font-black">Bienvenido</h1>
+    <div className="flex h-screen items-center justify-center bg-gray-50 p-10 text-center">
+      <div className="p-20 bg-white rounded-[50px] shadow-sm border border-gray-100 max-w-lg w-full">
+        <Package size={80} className="mx-auto text-gray-100 mb-8" />
+        <h1 className="text-3xl font-black tracking-tighter uppercase italic italic">Configurando <span className="text-emerald-600 italic">Dashboard</span></h1>
+        <p className="text-gray-400 font-medium italic mt-2">Personalizando tu entorno de alto rendimiento...</p>
       </div>
     </div>
   );

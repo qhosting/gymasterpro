@@ -26,6 +26,8 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
   const [currentGym, setCurrentGym] = useState<Partial<Gym> | null>(null);
 
   const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
+  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const canManage = isSuperAdmin || isAdmin;
 
   useEffect(() => {
     fetchGyms();
@@ -34,7 +36,9 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
   const fetchGyms = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/gyms');
+      const res = await fetch('/api/gyms', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
+      });
       const data = await res.json();
       setGyms(data);
     } catch (error) {
@@ -55,7 +59,10 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
       
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('gym-token')}`
+        },
         body: JSON.stringify(currentGym)
       });
 
@@ -77,7 +84,10 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
     if (!confirm('¿Estás seguro de eliminar esta sucursal?')) return;
     
     try {
-      const res = await fetch(`/api/gyms/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/gyms/${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
+      });
       if (res.ok) {
         fetchGyms();
       } else {
@@ -107,7 +117,7 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
           <p className="text-gray-500 font-medium italic">Gestión de sedes y política de operación global.</p>
         </div>
         
-        {isSuperAdmin && (
+        {canManage && (
           <button 
             onClick={() => {
               setCurrentGym({ nombre: '', direccion: '', cancellationWindow: 2 });
@@ -134,21 +144,25 @@ const GymsView: React.FC<GymsViewProps> = ({ currentUser }) => {
                   <Building2 size={24} />
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => {
-                        setCurrentGym(gym);
-                        setShowModal(true);
-                    }}
-                    className="p-3 bg-gray-50 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all"
-                  >
-                    <Edit3 size={18} />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(gym.id)}
-                    className="p-3 bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  {canManage && (
+                    <>
+                      <button 
+                        onClick={() => {
+                            setCurrentGym(gym);
+                            setShowModal(true);
+                        }}
+                        className="p-3 bg-gray-50 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(gym.id)}
+                        className="p-3 bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
