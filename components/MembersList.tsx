@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, Camera, X, Check, 
   Phone, Download, Calendar, User, ShieldAlert,
   ChevronRight, RefreshCw, Eye, Tag, CreditCard, SlidersHorizontal,
-  Dumbbell, Apple, Clock, Save, Loader2, CheckCircle2
+  Dumbbell, Apple, Clock, Save, Loader2, CheckCircle2, Cake, Send
 } from 'lucide-react';
 import { Member, MembershipStatus, UserRole, NutritionAppointment, Plan, Routine } from '../types';
 import { createMember, updateMember, deleteMember, uploadFile, fetchAppointments, fetchPlans, fetchRoutines } from '../services/apiService';
@@ -21,6 +21,7 @@ const memberSchema = z.object({
   objetivo: z.string().optional(),
   contactoEmergencia: z.string().optional(),
   telefonoEmergencia: z.string().optional(),
+  fechaNacimiento: z.string().optional(),
   password: z.string().refine(val => val === '' || val.length >= 6, {
     message: 'La contraseña debe tener al menos 6 caracteres'
   }).optional(),
@@ -249,10 +250,28 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
       objetivo: 'Pérdida de peso',
       contactoEmergencia: '',
       telefonoEmergencia: '',
+      fechaNacimiento: '',
       password: ''
     });
     setCapturedImage(null);
     setIsEditMode(false);
+  };
+
+  const handleEditMember = (member: Member) => {
+    setIsEditMode(true);
+    reset({
+      nombre: member.nombre,
+      email: member.email,
+      telefono: member.telefono || '',
+      planId: member.planId,
+      objetivo: member.objetivo || 'Pérdida de peso',
+      contactoEmergencia: member.contactoEmergencia || '',
+      telefonoEmergencia: member.telefonoEmergencia || '',
+      fechaNacimiento: member.fechaNacimiento || '',
+      password: ''
+    });
+    setCapturedImage(member.foto || null);
+    setIsModalOpen(true);
   };
 
   const handleUpdateAppointment = (id: string) => {
@@ -486,7 +505,15 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
           <div className="fixed right-0 top-0 h-full w-full max-w-lg bg-white z-[110] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col rounded-l-[50px]">
             <div className="p-10 border-b border-gray-50 flex items-center justify-between bg-gray-50/50 rounded-tl-[50px]">
               <h2 className="text-2xl font-black flex items-center gap-3 tracking-tight"><User size={28} className="text-orange-500"/> Expediente Socio</h2>
-              <button onClick={() => setSelectedMember(null)} className="p-3 bg-white hover:bg-gray-100 rounded-2xl transition-all shadow-sm"><X size={24}/></button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleEditMember(selectedMember)}
+                  className="p-3 bg-white text-gray-600 hover:text-orange-500 rounded-2xl transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase"
+                >
+                  <Edit2 size={18}/> Editar
+                </button>
+                <button onClick={() => setSelectedMember(null)} className="p-3 bg-white hover:bg-gray-100 rounded-2xl transition-all shadow-sm"><X size={24}/></button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
@@ -524,6 +551,30 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Objetivo Fit</p>
                     <p className="text-sm font-black text-orange-600 uppercase italic">{selectedMember.objetivo || 'General'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Cumpleaños</p>
+                    <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                      {selectedMember.fechaNacimiento || 'No registrado'}
+                      {(() => {
+                        const today = new Date();
+                        const bday = selectedMember.fechaNacimiento ? new Date(selectedMember.fechaNacimiento) : null;
+                        if (bday && today.getDate() === bday.getDate() && today.getMonth() === bday.getMonth()) {
+                          return (
+                            <button 
+                              onClick={() => {
+                                const msg = `¡Hola ${selectedMember.nombre}! 🥳 De parte de todo el equipo de AurumFit, ¡te deseamos un muy feliz cumpleaños! Que hoy sea un gran día de entrenamiento y celebración. 💪🎂`;
+                                window.open(`https://wa.me/${selectedMember.telefono?.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                              }}
+                              className="px-3 py-1 bg-orange-500 text-white text-[8px] font-black uppercase rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-1 shadow-lg shadow-orange-500/20"
+                            >
+                              <Send size={10} /> Felicitar
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Último Check-in</p>
@@ -888,6 +939,18 @@ const MembersList: React.FC<MembersListProps> = ({ members, setMembers }) => {
                     <option>Mantenimiento</option>
                     <option>Preparación Competencia</option>
                   </select>
+                </div>
+
+                <div className="space-y-1.5">
+                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Fecha de Nacimiento</label>
+                   <div className="relative">
+                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                     <input 
+                       type="date"
+                       className="w-full pl-12 pr-4 p-4 sm:p-5 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-orange-500 outline-none font-bold text-base transition-all"
+                       {...register('fechaNacimiento')}
+                     />
+                   </div>
                 </div>
 
                 {/* Respaldo Section */}

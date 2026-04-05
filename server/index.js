@@ -278,6 +278,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
                     status: data.status || 'PENDIENTE',
                     deuda: parseFloat(data.deuda || 0),
                     objetivo: data.objetivo,
+                    fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : null,
                     telefonoEmergencia: data.telefonoEmergencia,
                     contactoEmergencia: data.contactoEmergencia
                 }
@@ -350,6 +351,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
                     status: data.status,
                     deuda: data.deuda !== undefined ? parseFloat(data.deuda) : undefined,
                     objetivo: data.objetivo,
+                    fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : undefined,
                     telefonoEmergencia: data.telefonoEmergencia,
                     contactoEmergencia: data.contactoEmergencia
                 }

@@ -4,7 +4,7 @@ import {
   TrendingUp, Users, CreditCard, Clock, BrainCircuit, 
   Calendar, Apple, ChevronRight, Activity, Zap, 
   Target, Award, Dumbbell, ArrowUpRight, ArrowDownRight,
-  Eye, Package, UserCheck, ShieldCheck, Heart, MapPin
+  Eye, Package, UserCheck, ShieldCheck, Heart, MapPin, Cake
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
