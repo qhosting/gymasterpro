@@ -325,11 +325,42 @@ export const fetchStaff = async () => {
         });
         if (!response.ok) throw new Error('Failed to fetch staff');
         const data = await response.json();
-        // Option to add 'staff' store if needed, but for now just fallback to empty
         return data;
     } catch (error) {
         return [];
     }
+};
+
+export const createStaff = async (staffData: any) => {
+    const response = await fetch(`${API_URL}/staff`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(staffData)
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to create staff');
+    }
+    return await response.json();
+};
+
+export const updateStaff = async (id: string, staffData: any) => {
+    const response = await fetch(`${API_URL}/staff/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(staffData)
+    });
+    if (!response.ok) throw new Error('Failed to update staff');
+    return await response.json();
+};
+
+export const deleteStaff = async (id: string) => {
+    const response = await fetch(`${API_URL}/staff/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete staff');
+    return await response.json();
 };
 
 // --- PLANES CRUD ---

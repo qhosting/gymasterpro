@@ -57,6 +57,32 @@ const authenticateToken = (req, res, next) => {
 
     if (!token) return res.status(401).json({ error: 'Acceso denegado' });
 
+// --- AUTO-MIGRACIÓN DE PERSONAL (ONE-TIME) ---
+const migrateToMultitenant = async () => {
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                businessId: { not: null },
+                role: { in: ['ADMIN', 'INSTRUCTOR', 'NUTRIOLOGO'] }
+            }
+        });
+        if (users.length === 0) return;
+        
+        console.log(`Running auto-migration for ${users.length} staff members...`);
+        for (const user of users) {
+            await prisma.userBusiness.upsert({
+                where: { userId_businessId: { userId: user.id, businessId: user.businessId } },
+                update: { role: user.role, isActive: true },
+                create: { userId: user.id, businessId: user.businessId, role: user.role, isActive: true }
+            });
+        }
+    } catch (e) {
+        console.error("Auto-migration error (can be ignored if schema not ready):", e.message);
+    }
+};
+// Ejecutar migración de forma asíncrona al iniciar
+migrateToMultitenant();
+
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ error: 'Token inválido' });
         req.user = user;
@@ -433,19 +459,169 @@ app.delete('/api/members/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// --- OTROS ENDPOINTS ---
+// --- GESTIÓN DE PERSONAL (STAFF) ---
 
-// Listar planes
-app.get('/api/plans', authenticateToken, async (req, res) => {
+// Listar Personal (Instructores, Admin, etc)
+app.get('/api/staff', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'No autorizado para ver personal' });
+    }
+    
     try {
-        const plans = await prisma.plan.findMany({
-            where: { businessId: req.user.businessId }
+        const staffAssociations = await prisma.userBusiness.findMany({
+            where: {
+                businessId: req.user.businessId,
+                isActive: true
+            },
+            include: {
+                user: true
+            },
+            orderBy: {
+                user: { nombre: 'asc' }
+            }
         });
-        res.json(plans);
+        
+        res.json(staffAssociations.map(sa => ({
+            ...sa.user,
+            roleAtBusiness: sa.role // Devolvemos el rol específico en este negocio
+        })));
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener planes' });
+        console.error('Error fetching staff:', error);
+        res.status(500).json({ error: 'Error al obtener personal' });
     }
 });
+
+// Crear o Vincular Personal
+app.post('/api/staff', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const { nombre, email, role, telefono, foto, password } = req.body;
+    const lowerEmail = email.toLowerCase();
+    
+    try {
+        // 1. Buscar si el usuario ya existe globalmente
+        let user = await prisma.user.findUnique({
+            where: { email: lowerEmail }
+        });
+
+        if (!user) {
+            // Usuario totalmente nuevo
+            const hashedPassword = password ? await bcrypt.hash(password, 10) : await bcrypt.hash('123456', 10);
+            user = await prisma.user.create({
+                data: {
+                    nombre,
+                    email: lowerEmail,
+                    role, // Rol global por defecto
+                    telefono,
+                    foto: foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=random&color=fff`,
+                    password: hashedPassword,
+                    businessId: req.user.businessId,
+                    isPublic: true
+                }
+            });
+        }
+
+        // 2. Crear asociación multitenant (UserBusiness)
+        await prisma.userBusiness.upsert({
+            where: {
+                userId_businessId: {
+                    userId: user.id,
+                    businessId: req.user.businessId
+                }
+            },
+            update: {
+                role,
+                isActive: true
+            },
+            create: {
+                userId: user.id,
+                businessId: req.user.businessId,
+                role,
+                isActive: true
+            }
+        });
+
+        res.status(201).json(user);
+    } catch (error) {
+        console.error('Error creating/linking staff:', error);
+        res.status(500).json({ error: 'Error al procesar alta de personal' });
+    }
+});
+
+// Actualizar Personal
+app.put('/api/staff/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const { id } = req.params;
+    const { nombre, role, telefono, foto, isPublic, especialidad, biografia } = req.body;
+    
+    try {
+        // Actualizamos datos globales del usuario
+        const updated = await prisma.user.update({
+            where: { id },
+            data: {
+                nombre,
+                telefono,
+                foto,
+                isPublic,
+                especialidad,
+                biografia
+            }
+        });
+
+        // Actualizamos su rol específico en ESTE negocio
+        await prisma.userBusiness.updateMany({
+            where: { userId: id, businessId: req.user.businessId },
+            data: { role }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating staff:', error);
+        res.status(500).json({ error: 'Error al actualizar personal' });
+    }
+});
+
+// Desvincular Personal (No lo borramos de la DB global para permitir multitenant)
+app.delete('/api/staff/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    
+    const { id } = req.params;
+    
+    try {
+        await prisma.userBusiness.updateMany({
+            where: { userId: id, businessId: req.user.businessId },
+            data: { isActive: false }
+        });
+        res.json({ message: 'Personal desvinculado con éxito' });
+    } catch (error) {
+        console.error('Error unlinking staff:', error);
+        res.status(500).json({ error: 'Error al desvincular personal' });
+    }
+});
+
+// Endpoint para coaches públicos (Discovery)
+app.get('/api/coaches/public', authenticateToken, async (req, res) => {
+    try {
+        const coaches = await prisma.user.findMany({
+            where: {
+                role: 'INSTRUCTOR',
+                isPublic: true
+            }
+        });
+        res.json(coaches);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al buscar coaches' });
+    }
+});
+
+// --- OTROS ENDPOINTS ---
 
 // Crear plan
 app.post('/api/plans', authenticateToken, async (req, res) => {
@@ -1357,6 +1533,44 @@ if (fs.existsSync(distPath)) {
         });
     });
 }
+
+// --- MIGRACIONES DE EMERGENCIA (POST-DEPLOY) ---
+app.post('/api/admin/migrate-staff', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Solo Super Admin' });
+    
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                businessId: { not: null },
+                role: { in: ['ADMIN', 'INSTRUCTOR', 'NUTRIOLOGO'] }
+            }
+        });
+
+        let migrated = 0;
+        for (const user of users) {
+             await prisma.userBusiness.upsert({
+                where: {
+                    userId_businessId: {
+                        userId: user.id,
+                        businessId: user.businessId
+                    }
+                },
+                update: { role: user.role, isActive: true },
+                create: {
+                    userId: user.id,
+                    businessId: user.businessId,
+                    role: user.role,
+                    isActive: true
+                }
+            });
+            migrated++;
+        }
+        res.json({ message: `Migración exitosa: ${migrated} registros procesados.` });
+    } catch (error) {
+        console.error("Migration Error:", error);
+        res.status(500).json({ error: 'Error en migración' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

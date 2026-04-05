@@ -30,12 +30,11 @@ const CoachDiscovery: React.FC<CoachDiscoveryProps> = ({ currentUser }) => {
   const fetchCoaches = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/staff', {
+      const res = await fetch('/api/coaches/public', {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('gym-token')}` }
       });
       const data = await res.json();
-      // Filtrar solo los instructores
-      setCoaches(data.filter((u: any) => u.role === UserRole.INSTRUCTOR));
+      setCoaches(data);
     } catch (error) {
       console.error('Error fetching coaches:', error);
     } finally {

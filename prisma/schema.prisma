@@ -7,17 +7,34 @@ datasource db {
 }
 
 model User {
-  id         String    @id @default(uuid())
-  nombre     String
-  email      String    @unique
-  role       Role      @default(MIEMBRO)
-  foto       String?
-  password   String?
-  telefono   String?   @unique
-  businessId String?
-  classes    Class[]
-  member     Member?
-  business   Business? @relation(fields: [businessId], references: [id])
+  id               String          @id @default(uuid())
+  nombre           String
+  email            String          @unique
+  role             Role            @default(MIEMBRO)
+  foto             String?
+  password         String?
+  telefono         String?         @unique
+  businessId       String?         // Negocio primario o de origen
+  isPublic         Boolean         @default(false)
+  especialidad     String?
+  biografia        String?
+  classes          Class[]
+  member           Member?
+  business         Business?       @relation(fields: [businessId], references: [id])
+  businesses       UserBusiness[]  // Asociaciones multitenant
+}
+
+model UserBusiness {
+  id         String   @id @default(uuid())
+  userId     String
+  businessId String
+  role       Role     @default(INSTRUCTOR)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([userId, businessId])
 }
 
 model Member {
@@ -71,6 +88,7 @@ model Business {
   plans         Plan[]
   settings      SystemSettings?
   users         User[]
+  staff         UserBusiness[]  // Relación inversa para personal
 }
 
 model Class {

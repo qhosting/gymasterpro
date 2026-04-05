@@ -32,6 +32,7 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
   const [selectedGym, setSelectedGym] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
+  const [selectedClassForInfo, setSelectedClassForInfo] = useState<GroupClass | null>(null);
 
   const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPER_ADMIN;
   const isInstructor = currentUser.role === UserRole.INSTRUCTOR;
@@ -278,31 +279,37 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => isMember && !isBooked && handleBook(c.id)}
-                      disabled={isBooked || spotsLeft === 0 || bookingLoading === c.id || !isMember}
-                      className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-                        isBooked 
-                          ? 'bg-green-500/10 text-green-500 cursor-default border border-green-500/20' 
-                          : spotsLeft === 0
-                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                            : !isMember
-                              ? 'bg-gray-800 text-gray-500 border border-gray-700'
-                              : 'bg-white text-black hover:bg-orange-500 hover:text-white active:scale-95'
-                      }`}
-                    >
-                      {bookingLoading === c.id ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : isBooked ? (
-                        <><CheckCircle2 size={18} /> Reservado</>
-                      ) : spotsLeft === 0 ? (
-                        'Clase Agotada'
-                      ) : !isMember ? (
-                        'Info de Clase'
-                      ) : (
-                        'Reservar Lugar'
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedClassForInfo(c)}
+                        className="flex-1 py-3 bg-gray-800 text-gray-400 rounded-xl font-bold hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        Info
+                      </button>
+                      <button
+                        onClick={() => isMember && !isBooked && handleBook(c.id)}
+                        disabled={isBooked || spotsLeft === 0 || bookingLoading === c.id || !isMember}
+                        className={`flex-[2] py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                          isBooked 
+                            ? 'bg-green-500/10 text-green-500 cursor-default border border-green-500/20' 
+                            : spotsLeft === 0
+                              ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                              : !isMember
+                                ? 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed opacity-50'
+                                : 'bg-white text-black hover:bg-orange-500 hover:text-white active:scale-95'
+                        }`}
+                      >
+                        {bookingLoading === c.id ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : isBooked ? (
+                          <><CheckCircle2 size={18} /> Reservado</>
+                        ) : spotsLeft === 0 ? (
+                          'Agotada'
+                        ) : (
+                          'Reservar'
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -336,6 +343,70 @@ const ClassesView: React.FC<ClassesViewProps> = ({ currentUser }) => {
             }
           }}
         />
+      )}
+
+      {selectedClassForInfo && (
+        <div className="fixed inset-0 z-[100] flex justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedClassForInfo(null)} />
+          <div className="w-full max-w-lg bg-gray-900 h-full relative z-10 animate-in slide-in-from-right duration-500 border-l border-gray-800 overflow-y-auto custom-scrollbar">
+             <div className="h-64 bg-gradient-to-br from-orange-500 to-amber-600 relative p-8 flex flex-col justify-end">
+                <button onClick={() => setSelectedClassForInfo(null)} className="absolute top-6 left-6 p-2 bg-black/20 hover:bg-black/40 text-white rounded-xl transition-all"><XCircle size={24}/></button>
+                <div className="space-y-2">
+                   <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">{selectedClassForInfo.categoria}</p>
+                   <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{selectedClassForInfo.nombre}</h2>
+                </div>
+             </div>
+
+             <div className="p-8 space-y-8">
+                <section className="space-y-4">
+                   <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Instructor Responsable</h3>
+                   <div className="flex items-center gap-4 bg-gray-800/50 p-4 rounded-3xl border border-gray-700/50">
+                      <img 
+                        src={selectedClassForInfo.instructor?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedClassForInfo.instructor?.nombre || 'U')}&background=ff5722&color=fff`} 
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500/30" 
+                      />
+                      <div>
+                         <p className="text-lg font-black text-white">{selectedClassForInfo.instructor?.nombre}</p>
+                         <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Coach AurumFit</p>
+                      </div>
+                   </div>
+                </section>
+
+                <section className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-800/30 p-4 rounded-2xl border border-gray-700/30 space-y-2">
+                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horario</p>
+                     <p className="text-white font-bold">{getDayName(selectedClassForInfo.diaSemana)}</p>
+                     <p className="text-orange-400 font-black">{selectedClassForInfo.horaInicio} - {selectedClassForInfo.horaFin}</p>
+                  </div>
+                  <div className="bg-gray-800/30 p-4 rounded-2xl border border-gray-700/30 space-y-2">
+                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ubicación</p>
+                     <p className="text-white font-bold">{selectedClassForInfo.gym?.nombre}</p>
+                     <p className="text-xs text-gray-400 truncate">{selectedClassForInfo.gym?.direccion}</p>
+                  </div>
+                </section>
+
+                {(isAdmin || isInstructor) && selectedClassForInfo.bookings && (
+                  <section className="space-y-4">
+                     <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Miembros Inscritos ({selectedClassForInfo.bookings.filter(b => b.status === BookingStatus.RESERVED).length})</h3>
+                     <div className="space-y-2">
+                        {selectedClassForInfo.bookings.filter(b => b.status === BookingStatus.RESERVED).map(booking => (
+                          <div key={booking.id} className="flex items-center gap-3 p-3 bg-gray-800/30 rounded-xl border border-gray-700/30 hover:bg-gray-800/50 transition-colors">
+                             <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400 font-black text-xs">
+                                {booking.miembro?.nombre.charAt(0)}
+                             </div>
+                             <p className="text-sm font-bold text-gray-200">{booking.miembro?.nombre}</p>
+                             <div className="ml-auto w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                          </div>
+                        ))}
+                        {selectedClassForInfo.bookings.filter(b => b.status === BookingStatus.RESERVED).length === 0 && (
+                          <p className="text-center py-8 text-gray-600 font-bold italic">No hay miembros inscritos aún.</p>
+                        )}
+                     </div>
+                  </section>
+                )}
+             </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -416,12 +487,21 @@ const AddClassModal: React.FC<{
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Sucursal</label>
-              <select className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.gymId} onChange={e => setFormData({...formData, gymId: e.target.value})}>
-                <option value="">Selecciona Sucursal</option>
-                {gyms.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Sucursal</label>
+                <select className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.gymId} onChange={e => setFormData({...formData, gymId: e.target.value})}>
+                  <option value="">Selecciona</option>
+                  {gyms.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Instructor</label>
+                <select className="w-full p-4 bg-gray-800 rounded-2xl border-none outline-none text-white font-bold" value={formData.instructorId} onChange={e => setFormData({...formData, instructorId: e.target.value})}>
+                  <option value="">Selecciona</option>
+                  {instructors.map(ins => <option key={ins.id} value={ins.id}>{ins.nombre}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 

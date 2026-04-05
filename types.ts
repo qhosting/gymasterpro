@@ -20,6 +20,9 @@ export interface User {
   telefono?: string;
   role: UserRole;
   foto?: string;
+  isPublic?: boolean;
+  especialidad?: string;
+  biografia?: string;
 }
 
 export interface Member extends User {

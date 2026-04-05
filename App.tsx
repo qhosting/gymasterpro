@@ -34,6 +34,7 @@ import ClassesView from './components/ClassesView';
 import GymsView from './components/GymsView';
 import BusinessManagement from './components/BusinessManagement';
 import CoachDiscovery from './components/CoachDiscovery';
+import StaffManagement from './components/StaffManagement';
 import Login from './components/Login';
 import { fetchMembers, getMe, logout, fetchNotifications, fetchSystemSettings } from './services/apiService';
 import { SystemSettings as SystemSettingsType } from './types';
@@ -143,6 +144,7 @@ const App: React.FC = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.NUTRIOLOGO, UserRole.MIEMBRO] },
     { id: 'members', label: 'Miembros', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
+    { id: 'staff', label: 'Personal', icon: ShieldCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     { id: 'attendance', label: 'Asistencia', icon: CalendarCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTRUCTOR] },
     { id: 'businesses', label: 'Negocios', icon: Building2, roles: [UserRole.SUPER_ADMIN] },
     { id: 'coaches', label: 'Encuentra tu Coach', icon: Users, roles: [UserRole.MIEMBRO] },
@@ -161,6 +163,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard members={members} currentUser={currentUser} onNavigate={setActiveTab} />;
       case 'members': return <MembersList members={members} setMembers={setMembers} />;
+      case 'staff': return <StaffManagement />;
       case 'attendance': return <AttendanceTracker members={members} />;
       case 'training': return <TrainingView members={members} currentUser={currentUser} />;
       case 'nutrition': return <NutritionView members={members} currentUser={currentUser} />;
